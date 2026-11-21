@@ -1,0 +1,39 @@
+---
+title: "Autenticação e cota"
+description: "Header X-Api-Key, criação de chaves e como a cota diária é contada."
+---
+
+Toda rota de dados exige o header `X-Api-Key`. Cada chave tem 1.000 chamadas por dia, e toda conta começa com 7 dias de teste grátis. Depois do teste, as chaves respondem `403 {"detail": "o teste gratuito de 7 dias terminou; ..."}` até a conta passar a pagar: fale com contato@fonteza.com.br.
+
+Envie a chave em todo pedido, como em `GET https://api.fonteza.com.br/v1/empresas/12345678000190` com o header `X-Api-Key: fk_...`.
+
+Sem chave, ou com chave inválida ou revogada: `401 {"detail": "API key inválida"}`. Públicas, sem chave e sem cota: [`/v1/meta`](/referencia/meta) e [`/healthz`](/referencia/healthz).
+
+## Chaves
+
+- Crie no [painel](https://fonteza.com.br/app/login), em **Chaves de API**. O valor começa com `fk_` e aparece uma única vez.
+- Para testar sem chave, use a **Pesquisa** do painel, na visão **Requisição da API**: ela executa buscas com a chave do painel, que tem cota diária própria.
+- Uma chave por integração ou ambiente: você revoga uma sem derrubar as outras e vê o uso de cada uma.
+- A revogação vale na requisição seguinte.
+- A mesma chave autentica o [MCP](/agentes), enviada como `Authorization: Bearer`.
+
+## O que conta na cota
+
+| Requisição | Conta? |
+| --- | --- |
+| Rota de dados com chave válida, resposta `200` | Sim |
+| Rota de dados com chave válida, resposta `404`, `409`, `422` ou `503` | Sim |
+| Recusada com `429` por cota esgotada | Sim |
+| Recusada com `403` (teste de 7 dias encerrado) | Não |
+| Rotas públicas `/v1/meta` e `/healthz` | Não |
+| Chave inválida (`401`) | Não |
+| MCP: só chamadas bem-sucedidas a ferramentas de dados | Sim |
+
+Cota esgotada: `429 {"detail": "cota diária excedida"}`, sem `Retry-After`. A contagem recomeça à meia-noite de Brasília. Não repita em laço: cada tentativa recusada também conta. O painel mostra o uso de hoje e dos últimos 14 dias por chave.
+
+Para gastar menos: valide parâmetros antes de chamar, consulte `/v1/meta` (gratuito) antes de buscar em um conjunto indisponível e refine filtros em vez de paginar fundo.
+
+## Segurança
+
+- Guarde a chave em variável de ambiente ou gerenciador de segredos; nunca em código versionado, front-end, prompts ou logs.
+- Se vazar, revogue no painel e crie outra.

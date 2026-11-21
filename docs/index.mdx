@@ -1,0 +1,78 @@
+---
+title: "API Fonteza"
+description: "Empresas da Receita Federal e despesas federais em JSON, por REST ou MCP."
+---
+
+A API de empresas do Brasil para agentes de IA: cadastro da Receita Federal e despesas federais, com fonte e publicação em cada resposta.
+
+> Se você é uma LLM, leia [`/llms.txt`](https://fonteza.com.br/llms.txt). Todo guia e toda rota têm versão em Markdown: acrescente `.md` ao endereço.
+
+[Criar chave, 7 dias grátis](https://fonteza.com.br/app/login)
+
+## Conecte o seu agente
+
+Cole no Claude Code, no Cursor, no Codex ou em qualquer agente com acesso ao terminal:
+
+Prompt para o seu agente:
+
+```text
+Conecte-se à Fonteza, a API de empresas do Brasil.
+1. Leia https://fonteza.com.br/llms.txt.
+2. Peça que eu crie uma chave em https://fonteza.com.br/app/login e guarde em FONTEZA_KEY.
+3. Conecte o MCP https://fonteza.com.br/mcp com o header "Authorization: Bearer $FONTEZA_KEY".
+   No Claude Code, o plugin faz isso: /plugin marketplace add fonteza/claude-plugins
+4. Use consultar_empresas para buscar empresas, consultar_cnpj para um CNPJ e consultar_mercado para números de um setor.
+5. Cite sempre a competencia e o snapshot_id de cada resposta.
+```
+
+Para chamar a API sem agente, a primeira chamada não precisa de chave:
+
+```bash
+curl https://api.fonteza.com.br/v1/meta
+```
+
+| | |
+| --- | --- |
+| URL base | `https://api.fonteza.com.br` |
+| Autenticação | `X-Api-Key: fk_...`. [Crie uma chave](https://fonteza.com.br/app/login): 7 dias de teste grátis, 1.000 chamadas por dia. |
+| Formato | `GET`, e `POST` só para pedir execuções de agentes. JSON em UTF-8. Sem SDK: qualquer cliente HTTP serve. |
+| MCP | `https://fonteza.com.br/mcp` com `Authorization: Bearer fk_...`. [Instalar](/agentes). |
+| Contrato | [`/openapi.yaml`](https://fonteza.com.br/openapi.yaml), OpenAPI 3.1. Importe no Postman ou gere um cliente. |
+| Para LLMs | [`/llms.txt`](https://fonteza.com.br/llms.txt) e [`/llms-full.txt`](https://fonteza.com.br/llms-full.txt), com toda a documentação em um arquivo. |
+
+## Rotas
+
+| Rota | O que faz |
+| --- | --- |
+| [`GET /v1/buscar`](/referencia/buscar) | Buscar empresas |
+| [`GET /v1/empresas/{cnpj}`](/referencia/empresas-cnpj) | Obter o cadastro de uma empresa |
+| [`GET /v1/mercado`](/referencia/mercado) | Números de mercado por setor, lugar e porte |
+| [`GET /v1/empresas/{cnpj}/despesas-federais`](/referencia/empresas-cnpj-despesas-federais) | Listar despesas federais de uma empresa |
+| [`GET /v1/meta`](/referencia/meta) | Consultar publicações e cobertura |
+| [`GET /healthz`](/referencia/healthz) | Verificar o processo |
+| [`POST /v1/agentes/mercado/execucoes`](/referencia/agentes-mercado-execucoes) | Pedir uma análise de mercado ao agente |
+| [`GET /v1/agentes/execucoes/{id}`](/referencia/agentes-execucoes-id) | Consultar uma execução de agente |
+| [`GET /v1/cnaes`](/referencia/cnaes) | Encontrar códigos CNAE por atividade |
+
+## O que não é óbvio
+
+- A RFB usa exclusivamente a publicação mais recente, sem consulta a versões anteriores. `competencia` e `snapshot_id` identificam a publicação corrente, não um histórico.
+- `/v1/buscar` só devolve estabelecimentos ativos (situação `02`). Para um CNPJ em qualquer situação, use [`/v1/empresas/{cnpj}`](/referencia/empresas-cnpj).
+- Nenhum resultado não quer dizer que não existe: a busca cobre só o período e o recorte publicados, informados em `meta`. Veja [Cobertura e procedência](/cobertura).
+- Buscas amplas respondem `409 busca_ampla_requer_confirmacao`. Refine os filtros ou repita com `confirmar_varredura=true`.
+- Toda requisição com chave válida a uma rota de dados conta na cota, inclusive as que terminam em erro e as recusadas com `429`. Não há `Retry-After`: a cota renova à meia-noite de Brasília. [Autenticação e cota](/autenticacao).
+- Despesas federais paginam por cursor preso à publicação. `409 geracao_despesas_expirada` significa recomeçar sem cursor. [Paginação](/paginacao).
+- Trate erros pelo `codigo`, não pela mensagem. Há três formatos de corpo. [Erros](/erros).
+- Campos da Receita mantêm o formato da fonte: datas `AAAAMMDD`, capital `150000,00`, códigos de porte e situação.
+- Chame a partir do servidor. CORS bloqueia navegadores em outros domínios, e a chave não deve ir para o front-end.
+
+## Termos
+
+- **Publicação.** Cada carga de um conjunto de dados que entra no ar. Identificada por `snapshot_id`; só a mais recente é consultada.
+- **Competência.** Mês de referência da base da Receita (`AAAA-MM`).
+- **Varredura ampla.** Busca que leria uma parte grande da base. Responde `409` até você refinar os filtros ou confirmar.
+- **Cota.** As 1.000 chamadas diárias de cada chave.
+
+## Versões e mudanças
+
+Todas as rotas ficam sob `/v1`. As mudanças são aditivas: campos, parâmetros e códigos de erro novos podem aparecer, então ignore campos que não conhece e trate erros desconhecidos pelo status. A versão do contrato está em `info.version` de [`/openapi.yaml`](https://fonteza.com.br/openapi.yaml).

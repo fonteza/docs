@@ -1,0 +1,85 @@
+---
+title: "Números de mercado por setor, lugar e porte"
+description: "GET /v1/mercado: parâmetros, resposta e erros."
+---
+
+`GET /v1/mercado` · requer o header `X-Api-Key`
+
+Responde na hora, sem modelo: quantos estabelecimentos ativos existem, e quantos abriram e encerraram em cada mês dos últimos 60 meses completos, para um setor num estado, por perfil de empresa. Toda consulta nomeia um setor e uma UF: os números são contados na hora sobre a base publicada, por um índice de UF e CNAE. O setor vem de cnae (subclasses de 7 dígitos), de categoria (um slug de /v1/cnaes) ou de grupo (um grupo de categorias, como "Beleza e bem-estar"); informe exatamente um. O lugar é uf, ou uf com municipio (o nome, sem diferenciar maiúsculas nem acentos). perfil filtra por mei, me, epp, demais e nao_informado. faixa_capital filtra por faixas de capital social; os ids e os nomes das faixas estão em /v1/meta (data.faixas_capital), e valem desde o deploy que os trouxe. agrupar_por acrescenta grupos, os 100 maiores por total de ativos, por município, CNAE ou faixa de capital; com agrupar_por, grupos vem sempre, e é um array vazio quando nada corresponde.
+Como ler os números. Só entram empresas de natureza jurídica empresarial (2xxx); candidatos eleitorais ficam de fora. Ativo é situação cadastral 02. Encerramento é situação 08 (baixada) ou 04 (inapta), no mês da situação; inaptas contam porque milhões nunca chegam a ser baixadas. O perfil mei vale para quem é MEI hoje ou já foi: um MEI baixado não vira ME, e um ex-MEI que cresceu para ME continua contado como mei. O MEI nunca é somado ao ME: as baixas em massa do MEI em 2015 e 2018 pareceriam um colapso do mercado. O porte da Receita é o único tamanho publicado, e demais quer dizer acima do teto de receita das EPP: não separa média de grande empresa. As faixas de capital social são a medida mais fina, mas capital é o que a empresa declarou ao abrir ou ao alterar o contrato, não é faturamento e não é corrigido pela inflação: uma empresa antiga pode ter capital pequeno e ser grande. Cada filial carrega o capital da empresa (capital: empresa), então uma filial não é uma empresa grande por si só. Conta estabelecimentos, não empresas: uma filial em outro município conta lá. Só o CNAE principal entra (cnae: principal). Meses sem abertura nem encerramento não aparecem em mensal. Empresas sem capital legível ficam fora de toda faixa: contam nos totais sem filtro de faixa e aparecem em agrupar_por=faixa_capital com faixa_capital null.
+Os números são os da competência da base publicada (competencia). A série mensal agrupa datas cadastrais dessa publicação; não reconstrói o cadastro de cada mês nem compara snapshots históricos. busca é a consulta equivalente em /v1/buscar, para listar as empresas; vem só quando uma consulta dá conta do filtro (um setor de até 10 subclasses, e perfil e faixas que /v1/buscar expressa), e é aproximada para quem já foi MEI. /v1/buscar também não filtra a natureza jurídica, e os números só contam as de natureza empresarial (2xxx): a lista pode trazer CNPJs que a contagem exclui, como os candidatos eleitorais (4090). Cada chamada conta na cota como /v1/buscar.
+
+## Parâmetros
+
+| Parâmetro | Tipo | Onde | Obrigatório | Descrição |
+| --- | --- | --- | --- | --- |
+| `cnae` | string | query | não | Subclasses CNAE principais de 7 dígitos, até 50, separadas por vírgula; pontos, hífens e barras são ignorados. Obrigatório informar um entre cnae, categoria e grupo, e só um. |
+| `categoria` | string | query | não | Slug de uma categoria de /v1/cnaes, como saloes-beleza. Equivale a listar as subclasses dela em cnae. |
+| `grupo` | string | query | não | Grupo de categorias, como Beleza e bem-estar. Equivale a listar as subclasses de todas as categorias do grupo em cnae. |
+| `uf` | string | query | sim | Sigla da UF. Obrigatória: cada consulta conta um estado. De 2 a 2 caracteres. |
+| `municipio` | string | query | não | Nome do município, sem diferenciar maiúsculas nem acentos. Nome desconhecido ou fora da UF devolve 422 com sugestões, como /v1/buscar. Até 100 caracteres. Até 100 caracteres. |
+| `perfil` | string | query | não | Perfis separados por vírgula: mei, me, epp, demais, nao_informado. Sem o parâmetro, todos. |
+| `faixa_capital` | string | query | não | Ids de faixas de capital social separados por vírgula, de /v1/meta (data.faixas_capital). Sem o parâmetro, todas as faixas e também quem não tem capital legível. |
+| `agrupar_por` | string | query | não | Acrescenta grupos, os 100 maiores por total de ativos. Valores: `municipio`, `cnae`, `faixa_capital`. |
+
+## Resposta 200
+
+Números de mercado da competência publicada.
+
+- `competencia` (string): Competência da base de que as tabelas saíram.
+- `fonte` (string)
+- `cnae` ("principal"): Só o CNAE principal entra.
+- `capital` ("empresa"): Cada estabelecimento leva o capital social da empresa.
+- `faixas_capital_versao` (string): Versão das faixas de capital com que a base foi carregada; muda quando os cortes mudam.
+- `filtro` (objeto): O filtro como a API o entendeu.
+  - `cnaes` (array de string): As subclasses do setor, com o que categoria ou grupo resolveu.
+  - `uf` (string | null)
+  - `municipio` (string | null): Nome oficial do município, ou null.
+  - `perfil` (array de string)
+  - `faixa_capital` (array de integer | null): Os ids pedidos; null quando nenhuma faixa foi pedida, o que inclui quem não tem capital legível.
+- `ativos` (objeto)
+  - `mei` (integer)
+  - `me` (integer)
+  - `epp` (integer)
+  - `demais` (integer): Porte demais da Receita: acima do teto das EPP; não separa média de grande empresa.
+  - `nao_informado` (integer)
+  - `total` (integer): Soma dos perfis.
+- `grupos` (array de objeto, opcional): Presente sempre que agrupar_por foi informado, e vazio quando nada corresponde; ausente sem agrupar_por. No máximo 100 linhas, do maior total de ativos ao menor.
+  - `municipio` (string, opcional)
+  - `nome` (string, opcional)
+  - `uf` (string, opcional)
+  - `cnae` (string, opcional)
+  - `descricao` (string | null, opcional)
+  - `faixa_capital` (integer | null, opcional)
+  - `ativos` (objeto)
+    - `mei` (integer)
+    - `me` (integer)
+    - `epp` (integer)
+    - `demais` (integer): Porte demais da Receita: acima do teto das EPP; não separa média de grande empresa.
+    - `nao_informado` (integer)
+    - `total` (integer): Soma dos perfis.
+- `mensal` (array de objeto): Aberturas e encerramentos por mês, dos últimos 60 meses completos antes da competência. Meses sem nenhum não aparecem.
+  - `mes` (string)
+  - `aberturas` (objeto)
+    - `mei` (integer)
+    - `me` (integer)
+    - `epp` (integer)
+    - `demais` (integer): Porte demais da Receita: acima do teto das EPP; não separa média de grande empresa.
+    - `nao_informado` (integer)
+  - `encerramentos` (objeto)
+    - `mei` (integer)
+    - `me` (integer)
+    - `epp` (integer)
+    - `demais` (integer): Porte demais da Receita: acima do teto das EPP; não separa média de grande empresa.
+    - `nao_informado` (integer)
+- `busca` (string, opcional): A consulta equivalente em /v1/buscar; ausente quando uma consulta não expressa o filtro.
+
+## Erros
+
+| Status | Quando | Código |
+| --- | --- | --- |
+| 401 | Chave ausente, inválida ou revogada. |  |
+| 403 | O teste gratuito de 7 dias da conta terminou e a conta não é pagante. A chave volta a funcionar quando a conta passa a pagar; fale com contato@fonteza.com.br. A chamada recusada não conta na cota. |  |
+| 422 | Parâmetro inválido ou município incompatível com a UF. | `municipio_uf_incompativel` |
+| 429 | Cota diária da chave atingida (1.000 chamadas por padrão). Toda requisição autenticada conta, inclusive as que terminam em erro e as recusadas por cota. A contagem renova à meia-noite de Brasília. A resposta não traz Retry-After. |  |
+| 503 | Números de mercado indisponíveis: a competência publicada foi carregada antes das colunas e do índice que os contam (mercado_indisponivel; voltam com a próxima carga), ou valem os erros de AuthOrOperationalError. | `mercado_indisponivel` `base_indisponivel` |

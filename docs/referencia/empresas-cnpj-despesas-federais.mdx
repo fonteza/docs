@@ -1,0 +1,94 @@
+---
+title: "Listar despesas federais de uma empresa"
+description: "GET /v1/empresas/{cnpj}/despesas-federais: parâmetros, resposta e erros."
+---
+
+`GET /v1/empresas/{cnpj}/despesas-federais` · requer o header `X-Api-Key`
+
+Lista os documentos de empenho, liquidação e pagamento em que uma empresa aparece como favorecida, nos arquivos diários do Portal da Transparência.
+
+Com `escopo=raiz` (o padrão), entram todos os estabelecimentos com a mesma raiz de CNPJ; com `escopo=estabelecimento`, só o CNPJ exato. Cada item traz o CNPJ e o papel do favorecido no documento. As fases e as medidas monetárias vêm separadas.
+
+Uma lista vazia quer dizer só que nada apareceu na janela de arquivos informada em `meta`, e não que a empresa nunca recebeu recursos federais.
+
+Os exemplos desta página são ilustrativos e não representam conciliação oficial nem cobertura histórica completa.
+
+## Parâmetros
+
+| Parâmetro | Tipo | Onde | Obrigatório | Descrição |
+| --- | --- | --- | --- | --- |
+| `cnpj` | string | caminho | sim | CNPJ normalizado do favorecido; 12 caracteres alfanuméricos e dois dígitos verificadores. Formato: `^[0-9A-Z]{12}[0-9]{2}$`. |
+| `escopo` | string | query | não | Raiz consulta CNPJs com os mesmos oito primeiros caracteres; estabelecimento exige CNPJ exato. Valores: `raiz`, `estabelecimento`. Padrão: `"raiz"`. |
+| `fase` | string | query | não | Fase documental oficial; fases não são somadas entre si. Valores: `empenho`, `liquidacao`, `pagamento`. |
+| `data_de` | string (date) | query | não | Primeira data de emissão, inclusive; não amplia a janela de arquivos publicada. |
+| `data_ate` | string (date) | query | não | Última data de emissão, inclusive; não amplia a janela de arquivos publicada. |
+| `limit` | integer | query | não | Entre 1 e 100. Padrão: `20`. |
+| `cursor` | string | query | não | Cursor opaco vinculado à geração, ao CNPJ, ao escopo e aos filtros. |
+
+## Resposta 200
+
+Página vinculada a uma única geração publicada e aos filtros da consulta.
+
+- `items` (array de objeto)
+  - `fase` (string): Valores: `empenho`, `liquidacao`, `pagamento`.
+  - `codigo_documento` (string): Código SIAFI completo de 23 caracteres (UG, gestão e número do documento).
+  - `id_empenho` (string | null)
+  - `exercicio` (integer)
+  - `data_emissao` (string (date))
+  - `tipo_documento` (objeto)
+    - `codigo` (string | null)
+    - `nome` (string | null)
+  - `favorecido` (objeto)
+    - `cnpj` (string)
+    - `nome` (string | null)
+    - `papel` (string): Valores: `direto`, `final`.
+  - `orgao` (objeto)
+    - `codigo` (string | null)
+    - `nome` (string | null)
+  - `unidade_gestora` (objeto)
+    - `codigo` (string | null)
+    - `nome` (string | null)
+    - `codigo_gestao` (string | null)
+    - `gestao` (string | null)
+  - `processo` (string | null)
+  - `observacao` (string | null)
+  - `valores` (objeto): Medidas distintas preservadas por fase; não devem ser somadas entre si.
+    - `documento_brl` (string | null)
+    - `empenhos_impactados_brl` (string | null)
+    - `favorecido_final_brl` (string | null)
+  - `url_fonte` (string (uri))
+  - `vinculo_pncp` (objeto, obsoleto): Vem sempre com situacao sem_chave_oficial, porque nenhuma ligação com o PNCP é feita. Não use; pode ser removido em uma versão futura.
+    - `situacao` ("sem_chave_oficial")
+    - `numero_controle_pncp` (null)
+  - `arquivo_data` (string (date))
+- `has_more` (boolean)
+- `next_cursor` (string | null)
+- `meta` (objeto)
+  - `fonte` ("Portal da Transparência/Despesas Federais")
+  - `conjunto` ("transparencia-despesas")
+  - `snapshot_id` (string)
+  - `geracao` (integer)
+  - `cobertura` ("janela_arquivos_completa")
+  - `criterio` ("data_arquivo")
+  - `data_inicial` (string (date))
+  - `data_final` (string (date))
+  - `datas_listadas` (array de string (date))
+  - `datas_coletadas` (array de string (date))
+  - `manifesto_sha256` (string)
+  - `coletado_em` (string (date-time))
+  - `evidencia` (string): Valores: `fixture_sintetica`, `arquivo_oficial_nao_conciliado`.
+  - `contrato_fonte` ("dicionario_lote_documentado")
+  - `vinculos_pncp` (objeto, obsoleto): com_chave_oficial vem sempre 0. Não use; pode ser removido em uma versão futura.
+    - `com_chave_oficial` (0)
+    - `sem_chave_oficial` (integer)
+
+## Erros
+
+| Status | Quando | Código |
+| --- | --- | --- |
+| 401 | Chave ausente, inválida ou revogada. |  |
+| 403 | O teste gratuito de 7 dias da conta terminou e a conta não é pagante. A chave volta a funcionar quando a conta passa a pagar; fale com contato@fonteza.com.br. A chamada recusada não conta na cota. |  |
+| 409 | A geração do cursor deixou de ser a publicação atual. | `geracao_despesas_expirada` |
+| 422 | CNPJ, filtro ou cursor inválido. |  |
+| 429 | Cota diária da chave atingida (1.000 chamadas por padrão). Toda requisição autenticada conta, inclusive as que terminam em erro e as recusadas por cota. A contagem renova à meia-noite de Brasília. A resposta não traz Retry-After. |  |
+| 503 | Despesas sem janela completa publicada, contrato inconsistente, base indisponível, consulta interrompida pelo tempo limite ou consultas demais em andamento. | `despesas_indisponiveis` `base_indisponivel` `api_sobrecarregada` `consulta_demorada` |

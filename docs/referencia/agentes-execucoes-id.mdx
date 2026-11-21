@@ -1,0 +1,43 @@
+---
+title: "Consultar uma execução de agente"
+description: "GET /v1/agentes/execucoes/{id}: parâmetros, resposta e erros."
+---
+
+`GET /v1/agentes/execucoes/{id}` · requer o header `X-Api-Key`
+
+A execução como está agora: na_fila, executando, concluida ou falhou. Uma execução concluída traz em resultado a análise (analise), as respostas de /v1/mercado que o agente usou (mercado) e a competência da base. Todo número da análise aparece nessas respostas; uma análise com número que não aparece não é entregue. Uma execução que falhou traz o código do erro em erro: tentativas_esgotadas (o processo caiu três vezes), numeros_nao_conferem, agente_indisponivel, prazo_esgotado, consulta_indisponivel (os números não puderam ser lidos) ou acesso_desativado (o acesso da conta ao agente foi desligado). Cada execução é tentada até 3 vezes. Só a conta que pediu a execução a enxerga; o id de outra conta responde 404.
+
+## Parâmetros
+
+| Parâmetro | Tipo | Onde | Obrigatório | Descrição |
+| --- | --- | --- | --- | --- |
+| `id` | string (uuid) | caminho | sim | Id da execução, devolvido ao criá-la. |
+
+## Resposta 200
+
+A execução.
+
+- `id` (string (uuid))
+- `agente` ("mercado")
+- `estado` (string): Valores: `na_fila`, `executando`, `concluida`, `falhou`.
+- `entrada` (objeto)
+  - `filtros` (objeto): Os filtros enviados, só os informados.
+  - `objetivo` (string)
+  - `webhook` (boolean)
+- `resultado` (null | objeto): Presente quando estado é concluida.
+- `erro` (string | null): Código do erro quando estado é falhou.
+- `tentativas` (integer)
+- `webhook` (string | null): Entrega por webhook; null quando não foi pedida. Valores: `pendente`, `entregue`, `falhou`.
+- `criada_em` (string (date-time))
+- `iniciada_em` (string | null (date-time))
+- `concluida_em` (string | null (date-time))
+
+## Erros
+
+| Status | Quando | Código |
+| --- | --- | --- |
+| 401 | Chave ausente, inválida ou revogada. |  |
+| 403 | O teste gratuito de 7 dias da conta terminou e a conta não é pagante. A chave volta a funcionar quando a conta passa a pagar; fale com contato@fonteza.com.br. A chamada recusada não conta na cota. |  |
+| 404 | Nenhuma execução com este id nesta conta. | `execucao_nao_encontrada` |
+| 429 | Cota diária da chave atingida (1.000 chamadas por padrão). Toda requisição autenticada conta, inclusive as que terminam em erro e as recusadas por cota. A contagem renova à meia-noite de Brasília. A resposta não traz Retry-After. |  |
+| 503 | Execuções indisponíveis (agentes_indisponiveis), números de mercado indisponíveis para validar o município (mercado_indisponivel) ou valem os erros de AuthOrOperationalError. | `agentes_indisponiveis` |

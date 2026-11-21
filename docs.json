@@ -1,0 +1,90 @@
+{
+  "$schema": "https://docs.page/schema.json",
+  "name": "Fonteza",
+  "description": "Empresas da Receita Federal e despesas federais em JSON, por REST ou MCP.",
+  "sidebar": [
+    {
+      "group": "Começar",
+      "pages": [
+        {
+          "title": "Visão geral",
+          "href": "/"
+        },
+        {
+          "title": "Números de mercado",
+          "href": "/mercado"
+        },
+        {
+          "title": "Agentes de IA",
+          "href": "/agentes"
+        }
+      ]
+    },
+    {
+      "group": "Conceitos",
+      "pages": [
+        {
+          "title": "Autenticação e cota",
+          "href": "/autenticacao"
+        },
+        {
+          "title": "Paginação",
+          "href": "/paginacao"
+        },
+        {
+          "title": "Erros",
+          "href": "/erros"
+        },
+        {
+          "title": "Cobertura e procedência",
+          "href": "/cobertura"
+        },
+        {
+          "title": "Privacidade",
+          "href": "/privacidade"
+        }
+      ]
+    },
+    {
+      "group": "Referência",
+      "pages": [
+        {
+          "title": "Buscar empresas",
+          "href": "/referencia/buscar"
+        },
+        {
+          "title": "Obter o cadastro de uma empresa",
+          "href": "/referencia/empresas-cnpj"
+        },
+        {
+          "title": "Números de mercado por setor, lugar e porte",
+          "href": "/referencia/mercado"
+        },
+        {
+          "title": "Listar despesas federais de uma empresa",
+          "href": "/referencia/empresas-cnpj-despesas-federais"
+        },
+        {
+          "title": "Consultar publicações e cobertura",
+          "href": "/referencia/meta"
+        },
+        {
+          "title": "Verificar o processo",
+          "href": "/referencia/healthz"
+        },
+        {
+          "title": "Pedir uma análise de mercado ao agente",
+          "href": "/referencia/agentes-mercado-execucoes"
+        },
+        {
+          "title": "Consultar uma execução de agente",
+          "href": "/referencia/agentes-execucoes-id"
+        },
+        {
+          "title": "Encontrar códigos CNAE por atividade",
+          "href": "/referencia/cnaes"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+---
+title: "Agentes de IA"
+description: "MCP remoto, llms.txt e páginas em Markdown para agentes que consultam ou integram a Fonteza."
+---
+
+A Fonteza foi feita para ser usada por agentes. O mesmo dado chega por três portas, com a mesma conta e a mesma regra de cota.
+
+O cadastro da Receita usa só a publicação mais recente: cite a `competencia` recebida e veja [Cobertura e procedência](/cobertura). Não há consulta a competências anteriores.
+
+| Seu agente | Use |
+| --- | --- |
+| Consulta dados durante uma conversa ou tarefa | [MCP remoto](#mcp-remoto) |
+| Escreve código que integra a API | [Documentação em Markdown](#documentacao-para-llms) e [instruções para agentes de código](#instrucoes-para-agentes-de-codigo) |
+| Gera ferramentas de function calling a partir de um contrato | [`/openapi.yaml`](https://fonteza.com.br/openapi.yaml) |
+| Pede uma análise escrita e recebe o resultado depois | [Execuções de agente](#execucoes-de-agente), pela API |
+
+## MCP remoto
+
+| | |
+| --- | --- |
+| Endpoint | `https://fonteza.com.br/mcp` |
+| Transporte | Streamable HTTP |
+| Autenticação | OAuth 2.1 com registro dinâmico de clientes, ou `Authorization: Bearer fk_...` com uma chave criada no [painel](https://fonteza.com.br/app/login). |
+| Modelo | Por sua conta: a Fonteza fornece os dados, não o modelo. |
+
+### Claude
+
+**Plugin para o Claude Code.** O plugin oficial fica no repositório público [`fonteza/claude-plugins`](https://github.com/fonteza/claude-plugins) no GitHub:
+
+Rode `/plugin marketplace add fonteza/claude-plugins` e depois `/plugin install fonteza@fonteza`.
+
+Depois, rode `/mcp`, escolha `fonteza` e autentique: o navegador abre para você entrar na Fonteza e confirmar o acesso.
+
+**Conector no claude.ai e no Claude Desktop.** Em **Configurações → Conectores**, escolha **Adicionar conector personalizado**, informe `https://fonteza.com.br/mcp` e clique em **Conectar**. Entre com a sua conta Fonteza e confirme o acesso na página de consentimento da Fonteza. Os campos de OAuth avançados ficam em branco. Em planos Team e Enterprise, um proprietário da organização pode precisar adicionar o conector antes.
+
+Cada autorização cria a chave **Claude (conector)**, com cota diária própria, em **Chaves de API** no [painel](https://fonteza.com.br/app/login). Revogue essa chave para desconectar o Claude; as outras chaves continuam valendo.
+
+**Com chave de API.** Sem OAuth, por exemplo em automações sem navegador, use a linha Claude Code da tabela abaixo.
+
+### Instalar com chave de API
+
+| Cliente | Configuração |
+| --- | --- |
+| Claude Code | `claude mcp add --transport http fonteza https://fonteza.com.br/mcp --header "Authorization: Bearer $FONTEZA_KEY"` |
+| Cursor | Em `~/.cursor/mcp.json`, o servidor `fonteza` em `mcpServers` com `url` `https://fonteza.com.br/mcp` e o header `Authorization: Bearer ${env:FONTEZA_KEY}`. |
+| VS Code | Em `.vscode/mcp.json`, o servidor `fonteza` do tipo `http` com `url` `https://fonteza.com.br/mcp` e o header `Authorization: Bearer ${input:fonteza-key}`, com `fonteza-key` declarado em `inputs` como `promptString` com `password: true`. |
+| Codex | Em `~/.codex/config.toml`, a seção `[mcp_servers.fonteza]` com `url = "https://fonteza.com.br/mcp"` e `bearer_token_env_var = "FONTEZA_KEY"`. |
+| Claude Desktop | Em `claude_desktop_config.json`, o servidor `fonteza` com `command` `npx`, `args` `["-y", "mcp-remote", "https://fonteza.com.br/mcp", "--header", "Authorization:${FONTEZA_AUTH}"]` e `env` `FONTEZA_AUTH` igual a `Bearer fk_...`. |
+| OpenAI Agents | Uma ferramenta `type: mcp` com `server_label: fonteza`, `transport` `http` com `server_url` `https://fonteza.com.br/mcp` e `authorization: Bearer <chave>`, `connection_origin: service` e `required: true`. |
+
+No Claude Desktop, prefira o conector acima; a linha Claude Desktop usa o proxy `mcp-remote`, que requer Node.js, para quem precisa de chave fixa.
+
+| Cliente | Situação |
+| --- | --- |
+| Claude Code e OpenAI Agents, com chave de API | Testados em produção. |
+| Plugin do Claude Code e conector do claude.ai, com OAuth | Ainda não validados em produção; as instruções seguem a documentação de cada cliente. |
+| Cursor, VS Code, Codex e Claude Desktop | Configuração conforme a documentação de cada cliente, sem teste nosso. Qualquer cliente de MCP remoto que envie um header personalizado deve funcionar. |
+
+### Ferramentas
+
+| Ferramenta | O que faz | Equivalente REST |
+| --- | --- | --- |
+| `consultar_empresas` | Busca por nome, atividade ou até 10 códigos CNAE, com os filtros e a mesma busca da API. Cada item traz telefone e e-mail cadastrais. Até 50 por chamada; pagine com `offset` enquanto `has_more` for verdadeiro (`total` vem `null`). Busca ampla demais volta `busca_ampla_requer_confirmacao` com `cnaes_sugeridos`. | [`/v1/buscar`](/referencia/buscar) |
+| `consultar_mercado` | Números de mercado de um setor num estado (`uf` e um setor são obrigatórios): empresas ativas por porte, aberturas e encerramentos por mês e, com `agrupar_por`, os maiores municípios, CNAEs ou faixas de capital. Mesmo corpo da API em `data`; as faixas de capital vêm em `meta.faixas_capital`. Leia [Números de mercado](/mercado) antes de interpretar. | [`/v1/mercado`](/referencia/mercado) |
+| `consultar_cnpj` | Cadastro, sócios e despesas federais de um CNPJ. | [`/v1/empresas/{cnpj}`](/referencia/empresas-cnpj) e [`/despesas-federais`](/referencia/empresas-cnpj-despesas-federais) |
+
+Os argumentos de cada ferramenta chegam ao agente pela listagem do próprio MCP. No [painel](https://fonteza.com.br/app/login), a aba MCP da Pesquisa mostra a busca feita como uma chamada `tools/call` pronta, ao lado do curl. Enquanto houver um aviso operacional, como manutenção ou carga em andamento, toda resposta o traz em `meta.aviso`.
+
+### Cota no MCP
+
+- Só chamadas bem-sucedidas a ferramentas de dados consomem cota, mesmo com resultado vazio.
+- Listar ferramentas, argumentos inválidos, falhas, timeouts e cancelamentos não consomem.
+- Após 20 falhas de autenticação em um minuto a partir do mesmo IP, o MCP responde `429` até a janela liberar.
+
+## Execuções de agente
+
+Além das consultas, a API tem agentes prontos: você envia um `POST` com os filtros e um objetivo, recebe `202` com uma execução e consulta o resultado (ou recebe por webhook assinado). Só para contas liberadas, e só pela API, não pelo MCP. O passo a passo, os códigos de erro e a verificação da assinatura estão em [Análise escrita pelo agente](/mercado#analise-escrita-pelo-agente); o contrato, em [`POST /v1/agentes/mercado/execucoes`](/referencia/agentes-mercado-execucoes).
+
+## Documentação para LLMs
+
+Toda esta documentação existe em Markdown, sem navegação nem HTML, para caber no contexto de um modelo.
+
+| Endereço | Conteúdo |
+| --- | --- |
+| [`/llms.txt`](https://fonteza.com.br/llms.txt) | Índice no formato llms.txt: fatos essenciais e links para cada página. |
+| [`/llms-full.txt`](https://fonteza.com.br/llms-full.txt) | Todos os guias e a referência de todas as rotas em um único arquivo. |
+| `/docs/<página>.md` | Qualquer página em Markdown. Ex.: [`/docs/referencia/buscar.md`](/referencia/buscar.md). |
+| `Accept: text/markdown` | O endereço normal da página responde Markdown quando o cliente pede. |
+
+Em cada página, **Copiar Markdown** leva o conteúdo para a área de transferência, e **Abrir no Claude** ou **Abrir no ChatGPT** inicia uma conversa que já lê a página.
+
+## Instruções para agentes de código
+
+Cole no `AGENTS.md`, `CLAUDE.md` ou nas regras do Cursor do seu projeto:
+
+> **API Fonteza**
+>
+> - Documentação completa para LLMs: https://fonteza.com.br/llms-full.txt
+> - Contrato: https://fonteza.com.br/openapi.yaml
+> - URL base: https://api.fonteza.com.br. GET, e POST só para execuções de agentes; JSON. Header X-Api-Key lido de FONTEZA_KEY; nunca escreva a chave no código, em logs ou no front-end.
+> - Trate erros pelo campo `codigo` (em `detail.codigo` ou na raiz do corpo), nunca pelo texto da mensagem.
+> - Toda chamada com chave válida conta na cota diária, inclusive erros. Em 429, pare: não há Retry-After e repetir também conta.
+> - /v1/buscar pagina por offset e só devolve CNPJs ativos. Despesas paginam por `next_cursor`; em 409 geracao_despesas_expirada, recomece sem cursor.
+> - Nenhum resultado não quer dizer que não existe: a busca cobre só o recorte publicado. Consulte /v1/meta (gratuito) para cobertura e guarde `meta.snapshot_id` junto com o dado.
+
+## Segurança
+
+- Uma chave por agente ou ambiente, guardada em um gerenciador de segredos. Revogar uma não derruba as outras.
+- Nunca coloque a chave em prompts, definições de agente compartilhadas, arquivos versionados ou logs.
+- Se a chave vazar, revogue no [painel](https://fonteza.com.br/app/login) e crie outra; a revogação vale na requisição seguinte.

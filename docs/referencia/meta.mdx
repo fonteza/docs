@@ -1,0 +1,68 @@
+---
+title: "Consultar publicações e cobertura"
+description: "GET /v1/meta: parâmetros, resposta e erros."
+---
+
+`GET /v1/meta` · pública, sem chave
+
+Devolve a competência da base RFB e, em data.fontes, o estado de cada conjunto (disponivel, desatualizado ou indisponivel), a cobertura, o período e as datas de coleta e promoção. Consulte antes de interpretar uma busca sem resultados: com o conjunto indisponível ou parcial, nenhum resultado não quer dizer que o fato não existe. data.aviso traz o aviso operacional vigente (manutenção, carga em andamento) ou null. Os identificadores RFB informam a publicação corrente e não selecionam versões anteriores. data.faixas_capital lista as faixas de capital social de /v1/mercado, com id, nome e o mínimo em reais; data.faixas_capital_versao a versão delas.
+
+## Parâmetros
+
+Esta rota não recebe parâmetros.
+
+## Resposta 200
+
+Competência e disponibilidade das fontes.
+
+- `data` (objeto)
+  - `competencia` (string | null)
+  - `aviso` (string | null): Aviso operacional vigente, como manutenção ou carga em andamento; null quando não há.
+  - `total_linhas` (integer | null)
+  - `promovido_em` (string | null (date-time))
+  - `snapshot_id` (string | null)
+  - `fonte` (array de string)
+  - `fontes` (objeto)
+    - `rfb` (objeto)
+      - `estado` (string): Valores: `disponivel`, `desatualizado`, `indisponivel`.
+      - `cobertura` (string): Valores: `completa`, `parcial`, `desconhecida`.
+      - `disponivel` (boolean): Verdadeiro para publicação completa e consultável; RFB legada permanece consultável com cobertura desconhecida.
+      - `snapshot_id` (string | null)
+      - `periodo` (string | null)
+      - `coletado_em` (string | null (date-time))
+      - `promovido_em` (string | null (date-time))
+      - `ultima_tentativa` (string | null (date-time))
+      - `ultima_carga_valida` (string | null (date-time))
+      - `motivo_atraso` (string | null): Valores: `cadencia_excedida`.
+      - `registros` (integer)
+      - `evidencia` (string | null, opcional): Valores: `fixture_sintetica`, `arquivo_oficial_nao_conciliado`.
+      - `contrato_fonte` (string | null, opcional): Valores: `dicionario_lote_documentado`.
+    - `transparencia_despesas` (objeto)
+      - `estado` (string): Valores: `disponivel`, `desatualizado`, `indisponivel`.
+      - `cobertura` (string): Valores: `completa`, `parcial`, `desconhecida`.
+      - `disponivel` (boolean): Verdadeiro para publicação completa e consultável; RFB legada permanece consultável com cobertura desconhecida.
+      - `snapshot_id` (string | null)
+      - `periodo` (string | null)
+      - `coletado_em` (string | null (date-time))
+      - `promovido_em` (string | null (date-time))
+      - `ultima_tentativa` (string | null (date-time))
+      - `ultima_carga_valida` (string | null (date-time))
+      - `motivo_atraso` (string | null): Valores: `cadencia_excedida`.
+      - `registros` (integer)
+      - `evidencia` (string | null): Valores: `fixture_sintetica`, `arquivo_oficial_nao_conciliado`.
+      - `contrato_fonte` (string | null): Valores: `dicionario_lote_documentado`.
+  - `faixas_capital_versao` (string, opcional): Versão do arquivo de faixas de capital social desta API, a mesma que /v1/mercado devolve.
+  - `faixas_capital` (array de objeto, opcional): As faixas de capital social de /v1/mercado, em ordem; o filtro faixa_capital e agrupar_por=faixa_capital usam os ids.
+    - `id` (integer)
+    - `nome` (string)
+    - `desde` (integer): Capital social mínimo da faixa, em reais, inclusive. O máximo é o início da faixa seguinte; a última não tem máximo.
+- `meta` (objeto)
+  - `fonte` (array de string)
+  - `competencia` (string | null, opcional)
+  - `snapshot_id` (string | null, opcional)
+
+## Erros
+
+| Status | Quando | Código |
+| --- | --- | --- |
+| 503 | Base ainda não disponível. | `base_indisponivel` |

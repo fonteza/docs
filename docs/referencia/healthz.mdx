@@ -1,0 +1,25 @@
+---
+title: "Verificar o processo"
+description: "GET /healthz: parâmetros, resposta e erros."
+---
+
+`GET /healthz` · pública, sem chave
+
+Confirma que o processo da API está de pé e que a base publicada tem os índices de que a busca depende (antes da primeira publicação, não há o que verificar). Para saber se os dados estão disponíveis, use /v1/meta.
+
+## Parâmetros
+
+Esta rota não recebe parâmetros.
+
+## Resposta 200
+
+Processo disponível.
+
+- `status` ("ok")
+- `base` (string)
+
+## Erros
+
+| Status | Quando | Código |
+| --- | --- | --- |
+| 503 | A base publicada perdeu um índice da busca (indices_ausentes) ou não pôde ser consultada (indices_nao_verificados). |  |
