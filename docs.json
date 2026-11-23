@@ -17,6 +17,10 @@
         {
           "title": "Agentes de IA",
           "href": "/agentes"
+        },
+        {
+          "title": "Migrar da ReceitaWS",
+          "href": "/receitaws"
         }
       ]
     },
@@ -55,6 +59,10 @@
         {
           "title": "Obter o cadastro de uma empresa",
           "href": "/referencia/empresas-cnpj"
+        },
+        {
+          "title": "Consultar CNPJ no formato ReceitaWS",
+          "href": "/referencia/cnpj-cnpj"
         },
         {
           "title": "Números de mercado por setor, lugar e porte",

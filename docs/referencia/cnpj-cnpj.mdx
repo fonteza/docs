@@ -1,0 +1,81 @@
+---
+title: "Consultar CNPJ no formato ReceitaWS"
+description: "GET /v1/cnpj/{cnpj}: parâmetros, resposta e erros."
+---
+
+`GET /v1/cnpj/{cnpj}` · requer o header `X-Api-Key`
+
+Cadastro na raiz do JSON, na publicação RFB vigente. Envie sua chave Fonteza em X-Api-Key.
+
+## Parâmetros
+
+| Parâmetro | Tipo | Onde | Obrigatório | Descrição |
+| --- | --- | --- | --- | --- |
+| `cnpj` | string | caminho | sim | CNPJ completo com 14 caracteres. Pontos e hífen são removidos e letras viram maiúsculas (CNPJ alfanumérico); a barra não é aceita no caminho e resulta em 404. Os dígitos verificadores não são conferidos. Ao menos 14 caracteres. |
+
+## Resposta 200
+
+Cadastro do estabelecimento e sócios da empresa.
+
+- `status` ("OK")
+- `ultima_atualizacao` (string (date-time))
+- `cnpj` (string)
+- `tipo` (string)
+- `porte` (string)
+- `nome` (string)
+- `fantasia` (string)
+- `abertura` (string)
+- `atividade_principal` (array de objeto)
+  - `code` (string)
+  - `text` (string)
+- `atividades_secundarias` (array de objeto)
+  - `code` (string)
+  - `text` (string)
+- `natureza_juridica` (string)
+- `logradouro` (string)
+- `numero` (string)
+- `complemento` (string)
+- `cep` (string)
+- `bairro` (string)
+- `municipio` (string)
+- `uf` (string)
+- `email` (string)
+- `telefone` (string)
+- `efr` (string)
+- `situacao` (string)
+- `data_situacao` (string)
+- `motivo_situacao` (string)
+- `situacao_especial` (string)
+- `data_situacao_especial` (string)
+- `capital_social` (string)
+- `qsa` (array de objeto)
+  - `nome` (string)
+  - `qual` (string)
+  - `pais_origem` (string, opcional)
+  - `nome_rep_legal` (string, opcional)
+  - `qual_rep_legal` (string, opcional)
+- `simples` (objeto)
+  - `optante` (boolean)
+  - `data_opcao` (string | null)
+  - `data_exclusao` (string | null)
+  - `ultima_atualizacao` (string (date-time))
+- `simei` (objeto)
+  - `optante` (boolean)
+  - `data_opcao` (string | null)
+  - `data_exclusao` (string | null)
+  - `ultima_atualizacao` (string (date-time))
+- `extra` (objeto)
+- `billing` (objeto)
+  - `free` (false)
+  - `database` (true)
+
+## Erros
+
+| Status | Quando | Código |
+| --- | --- | --- |
+| 401 | Chave ausente, inválida ou revogada. |  |
+| 403 | O teste gratuito de 7 dias da conta terminou e a conta não é pagante. A chave volta a funcionar quando a conta passa a pagar; fale com contato@fonteza.com.br. A chamada recusada não conta na cota. |  |
+| 404 | Registro não encontrado. |  |
+| 422 | Parâmetro inválido. |  |
+| 429 | Cota diária da chave atingida (a cota da chave segue o plano da conta, salvo valor próprio) ou cota mensal do plano da conta esgotada. Na cota diária, toda requisição autenticada conta, inclusive as que terminam em erro e as recusadas por cota, e a contagem renova à meia-noite de Brasília. A cota mensal soma o dia 1º ao último dia do mês de Brasília, entre todas as chaves da conta; a chamada recusada por ela não conta, e o limite volta no dia 1º. Contas sem limite mensal só têm a cota diária. A resposta não traz Retry-After. |  |
+| 503 | Autenticação indisponível, base indisponível, consulta interrompida pelo tempo limite (consulta_demorada) ou, nas buscas, consultas demais do mesmo tipo em andamento (api_sobrecarregada). | `base_indisponivel` `api_sobrecarregada` `consulta_demorada` |
