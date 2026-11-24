@@ -94,5 +94,11 @@
         }
       ]
     }
-  ]
+  ],
+  "theme": {
+    "primaryLight": "#1d3f33",
+    "backgroundLight": "#fdfbf4",
+    "primaryDark": "#8aae90",
+    "backgroundDark": "#302f2c"
+  }
 }
