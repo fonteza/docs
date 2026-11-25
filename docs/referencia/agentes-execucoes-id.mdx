@@ -1,11 +1,11 @@
 ---
-title: "Consultar uma execução de agente"
-description: "GET /v1/agentes/execucoes/{id}: parâmetros, resposta e erros."
+title: "Consultar execução"
+description: "Retorna o estado (`na_fila`, `executando`, `concluida`, `falhou`) e o resultado de uma análise de agente."
 ---
 
-`GET /v1/agentes/execucoes/{id}` · requer o header `X-Api-Key`
+`GET /v1/agentes/execucoes/{id}` · requer `X-Api-Key`
 
-A execução como está agora: na_fila, executando, concluida ou falhou. Uma execução concluída traz em resultado a análise (analise), as respostas de /v1/mercado que o agente usou (mercado) e a competência da base. Todo número da análise aparece nessas respostas; uma análise com número que não aparece não é entregue. Uma execução que falhou traz o código do erro em erro: tentativas_esgotadas (o processo caiu três vezes), numeros_nao_conferem, agente_indisponivel, prazo_esgotado, consulta_indisponivel (os números não puderam ser lidos) ou acesso_desativado (o acesso da conta ao agente foi desligado). Cada execução é tentada até 3 vezes. Só a conta que pediu a execução a enxerga; o id de outra conta responde 404.
+Retorna o estado (`na_fila`, `executando`, `concluida`, `falhou`) e o resultado de uma análise de agente.
 
 ## Exemplo
 
@@ -17,33 +17,16 @@ curl \
 
 ## Parâmetros
 
-| Parâmetro | Tipo | Onde | Obrigatório | Descrição |
-| --- | --- | --- | --- | --- |
-| `id` | string (uuid) | caminho | sim | Id da execução, devolvido ao criá-la. |
+| Parâmetro | Tipo | Obrigatório | Descrição |
+| --- | --- | --- | --- |
+| `id` | string (uuid) | sim | Id da execução, devolvido ao criá-la. |
 
-## Resposta 200
-
-A execução.
-
-- `id` (string (uuid))
-- `agente` ("mercado")
-- `estado` (string): Valores: `na_fila`, `executando`, `concluida`, `falhou`.
-- `entrada` (objeto)
-  - `filtros` (objeto): Os filtros enviados, só os informados.
-  - `objetivo` (string)
-  - `webhook` (boolean)
-- `resultado` (null | objeto): Presente quando estado é concluida.
-- `erro` (string | null): Código do erro quando estado é falhou.
-- `tentativas` (integer)
-- `webhook` (string | null): Entrega por webhook; null quando não foi pedida. Valores: `pendente`, `entregue`, `falhou`.
-- `criada_em` (string (date-time))
-- `iniciada_em` (string | null (date-time))
-- `concluida_em` (string | null (date-time))
+Schema completo em [openapi.yaml](https://fonteza.com.br/openapi.yaml).
 
 ## Erros
 
-| Status | Quando | Código |
+| Status | Código | Quando |
 | --- | --- | --- |
-| 404 | Nenhuma execução com este id nesta conta. | `execucao_nao_encontrada` |
+| 404 | `execucao_nao_encontrada` | Nenhuma execução com este id nesta conta. |
 
-Erros comuns (401, 403, 429, 503): veja [Autenticação, cota e erros](/autenticacao#erros).
+Erros comuns e limites: [Autenticação, limites e erros](/autenticacao#erros).

@@ -1,11 +1,11 @@
 ---
-title: "Pedir uma análise de mercado ao agente"
-description: "POST /v1/agentes/mercado/execucoes: parâmetros, resposta e erros."
+title: "Agente de mercado"
+description: "Enfileira uma análise escrita em Markdown sobre `/v1/mercado` (assíncrona, retorna `202`, até 20/dia para contas liberadas)."
 ---
 
-`POST /v1/agentes/mercado/execucoes` · requer o header `X-Api-Key`
+`POST /v1/agentes/mercado/execucoes` · requer `X-Api-Key`
 
-Põe na fila uma execução do agente de mercado: ele lê os números de /v1/mercado para os filtros enviados e uma amostra de empresas de /v1/buscar, e escreve uma análise em português para o objetivo informado ("abrir um salão", "vender software contábil"). A resposta vem na hora, com estado na_fila; acompanhe em GET /v1/agentes/execucoes/\{id\} (o header Location traz o caminho) ou peça webhook true para receber a execução, assinada, na URL de webhook da conta quando ela terminar. Os filtros são os de /v1/mercado, com os mesmos nomes e valores (um setor e uf são obrigatórios), e são validados antes de entrar na fila. As execuções não têm custo e só contas liberadas podem pedi-las, até um limite por dia (20 por padrão, contado no dia de Brasília). Cada chamada conta na cota da chave; as consultas que o agente faz também contam na cota da chave que pediu a execução.
+Enfileira uma análise escrita em Markdown sobre `/v1/mercado` (assíncrona, retorna `202`, até 20/dia para contas liberadas).
 
 ## Exemplo
 
@@ -31,29 +31,28 @@ curl \
 - `objetivo` (string): Para que serve a análise, em texto livre.
 - `webhook` (boolean, opcional): Entregar a execução, quando terminar, na URL de webhook da conta (configurada no app).
 
-## Resposta 202
+## Notas
 
-Execução na fila.
+Acompanhe o resultado em [`GET /v1/agentes/execucoes/{id}`](/referencia/agentes-execucoes-id) ou envie `"webhook": true` para receber por `POST` na URL HTTPS da conta.
 
-- `id` (string (uuid))
-- `agente` ("mercado")
-- `estado` (string): Valores: `na_fila`, `executando`, `concluida`, `falhou`.
-- `entrada` (objeto)
-  - `filtros` (objeto): Os filtros enviados, só os informados.
-  - `objetivo` (string)
-  - `webhook` (boolean)
-- `resultado` (null | objeto): Presente quando estado é concluida.
-- `erro` (string | null): Código do erro quando estado é falhou.
-- `tentativas` (integer)
-- `webhook` (string | null): Entrega por webhook; null quando não foi pedida. Valores: `pendente`, `entregue`, `falhou`.
-- `criada_em` (string (date-time))
-- `iniciada_em` (string | null (date-time))
-- `concluida_em` (string | null (date-time))
+Validação da assinatura HMAC-SHA256 (`X-Fonteza-Timestamp` + `X-Fonteza-Assinatura`):
+
+```python
+import hashlib, hmac, time
+
+def assinatura_valida(segredo: str, timestamp: str, corpo: bytes, assinatura: str) -> bool:
+    if abs(time.time() - int(timestamp)) > 300:
+        return False
+    esperada = hmac.new(segredo.encode(), f"{timestamp}.".encode() + corpo, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(esperada, assinatura)
+```
+
+Schema completo em [openapi.yaml](https://fonteza.com.br/openapi.yaml).
 
 ## Erros
 
-| Status | Quando | Código |
+| Status | Código | Quando |
 | --- | --- | --- |
-| 422 | Corpo ou filtro inválido, município desconhecido ou fora da UF (com sugestões, como em /v1/mercado), ou webhook pedido sem URL de webhook configurada na conta (webhook_nao_configurado). | `webhook_nao_configurado` |
+| 422 | `webhook_nao_configurado` | Corpo ou filtro inválido, município desconhecido ou fora da UF (com sugestões, como em /v1/mercado), ou webhook pedido sem URL de webhook configurada na conta (webhook_nao_configurado). |
 
-Erros comuns (401, 403, 429, 503): veja [Autenticação, cota e erros](/autenticacao#erros).
+Erros comuns e limites: [Autenticação, limites e erros](/autenticacao#erros).

@@ -1,18 +1,18 @@
 ---
 title: "Buscar empresas"
-description: "GET /v1/buscar: parâmetros, resposta e erros."
+description: "Busca estabelecimentos ativos (`situacao_cadastral: 02`) por nome, atividade, CNPJ ou CNAE."
 ---
 
-`GET /v1/buscar` · requer o header `X-Api-Key`
+`GET /v1/buscar` · requer `X-Api-Key`
 
-Busca estabelecimentos por nome, atividade, CNPJ ou CNAE, com filtros estruturados. Somente estabelecimentos com situação cadastral ativa (02) entram no resultado; para consultar um CNPJ em qualquer situação, use /v1/empresas/\{cnpj\}. Informe q, cnae ou os dois. Um CNPJ completo em q faz busca exata (modo cnpj); palavras usam busca textual em português sobre razão social, nome fantasia e descrição do CNAE (modo texto); quando nenhuma empresa corresponde ao texto, a busca tenta semelhança de grafia na razão social (modo fuzzy). meta.modo_busca informa o modo aplicado. O total exato é opcional (incluir_total) porque custa uma contagem completa; incluir_contagem conta até 1.000 resultados, rápido mesmo em buscas amplas. Cada item traz telefone e e-mail cadastrais; com tem_telefone e tem_email, uma página de até 100 contatos custa uma chamada. Toda busca é planejada antes de rodar, e meta.plano diz se ela é uma varredura ampla da base. Uma varredura ampla, com ou sem cnae, pede confirmação explícita (409 busca_ampla_requer_confirmacao). Com q e sem cnae, meta.cnaes_sugeridos traz os códigos CNAE das palavras de q (os mesmos de /v1/cnaes): filtrar por eles é a forma indexada, e rápida, de buscar uma atividade.
+Busca estabelecimentos ativos (`situacao_cadastral: 02`) por nome, atividade, CNPJ ou CNAE.
 
 ## Exemplo
 
 ```bash
 curl \
   -H "X-Api-Key: $FONTEZA_KEY" \
-  "https://api.fonteza.com.br/v1/buscar?q=padaria&uf=SP&limit=5"
+  "https://api.fonteza.com.br/v1/buscar?q=transportadora&uf=SP"
 ```
 
 Resposta `200`:
@@ -83,82 +83,44 @@ Resposta `200`:
 
 ## Parâmetros
 
-| Parâmetro | Tipo | Onde | Obrigatório | Descrição |
-| --- | --- | --- | --- | --- |
-| `q` | string | query | não | Nome, razão social, atividade ou CNPJ, de 2 a 120 caracteres. Obrigatório se cnae não for informado. |
-| `uf` | string | query | não | Sigla da UF do estabelecimento. Até 2 caracteres. |
-| `municipio` | string | query | não | Nome do município, sem diferenciar maiúsculas nem acentos (sao paulo equivale a São Paulo); hífens e apóstrofos contam. Envie também uf: sem ela, municípios homônimos de outras UFs entram no resultado. Nome desconhecido ou fora da UF informada devolve 422 com sugestões. Até 100 caracteres. |
-| `cnae` | string | query | não | Código CNAE principal, ou até 10 códigos separados por vírgula (uma categoria de /v1/cnaes pode ter vários). Cada código deve ter sete dígitos e constar na lista de CNAE da base publicada; outro valor responde 422. Pontos, hífens e barras são ignorados (4721-1/02). |
-| `somente_matriz` | boolean | query | não | Exclui filiais. Padrão: `false`. |
-| `ordenar_por` | string | query | não | Valores: `relevancia`, `nome`, `municipio`, `uf`, `capital_social`, `data_inicio_atividade`, `cnae`. Padrão: `"relevancia"`. |
-| `ordem` | string | query | não | Valores: `asc`, `desc`. Padrão: `"desc"`. |
-| `porte` | string | query | não | Códigos de porte da RFB separados por vírgula: 00 não informado, 01 microempresa, 03 empresa de pequeno porte, 05 demais. |
-| `capital_min` | number | query | não | Capital social mínimo em reais. Mínimo 0. |
-| `capital_max` | number | query | não | Capital social máximo em reais; não pode ser menor que capital_min. Mínimo 0. |
-| `data_inicio_de` | string (date) | query | não | Início de atividade a partir desta data (AAAA-MM-DD). |
-| `data_inicio_ate` | string (date) | query | não | Início de atividade até esta data (AAAA-MM-DD). |
-| `tem_email` | boolean | query | não | true exige e-mail cadastrado; false exige ausência. |
-| `tem_telefone` | boolean | query | não | true exige telefone cadastrado; false exige ausência. |
-| `simples` | string | query | não | Opção pelo Simples Nacional. Valores: `S`, `N`. |
-| `mei` | string | query | não | Opção pelo MEI. Valores: `S`, `N`. |
-| `incluir_total` | boolean | query | não | Calcula o total exato de resultados; sem ele, total vem null. Padrão: `false`. |
-| `incluir_contagem` | boolean | query | não | Conta os resultados até 1.000 e devolve contagem; acima disso, contagem.excede_limite vem true. Mais rápido que incluir_total em buscas amplas. Padrão: `false`. |
-| `confirmar_varredura` | boolean | query | não | Confirma uma busca ampla recusada com 409 e amplia o tempo limite de 12 para 60 segundos. Padrão: `false`. |
-| `limit` | integer | query | não | Entre 1 e 100. Padrão: `20`. |
-| `offset` | integer | query | não | Deslocamento da página. Prefira refinar filtros a paginar fundo. Mínimo 0. Padrão: `0`. |
+| Parâmetro | Tipo | Obrigatório | Descrição |
+| --- | --- | --- | --- |
+| `q` | string | não | Nome, razão social, atividade ou CNPJ, de 2 a 120 caracteres. |
+| `uf` | string | não | Sigla da UF do estabelecimento. |
+| `municipio` | string | não | Nome do município, sem diferenciar maiúsculas nem acentos (sao paulo equivale a São Paulo); hífens e apóstrofos contam. |
+| `cnae` | string | não | Código CNAE principal, ou até 10 códigos separados por vírgula (uma categoria de /v1/cnaes pode ter vários). |
+| `somente_matriz` | boolean | não | Exclui filiais. Padrão: `false`. |
+| `ordenar_por` | string | não | Valores: `relevancia`, `nome`, `municipio`, `uf`, `capital_social`, `data_inicio_atividade`, `cnae`. Padrão: `"relevancia"`. |
+| `ordem` | string | não | Valores: `asc`, `desc`. Padrão: `"desc"`. |
+| `porte` | string | não | Códigos de porte da RFB separados por vírgula: 00 não informado, 01 microempresa, 03 empresa de pequeno porte, 05 demais. |
+| `capital_min` | number | não | Capital social mínimo em reais. |
+| `capital_max` | number | não | Capital social máximo em reais; não pode ser menor que capital_min. |
+| `data_inicio_de` | string (date) | não | Início de atividade a partir desta data (AAAA-MM-DD). |
+| `data_inicio_ate` | string (date) | não | Início de atividade até esta data (AAAA-MM-DD). |
+| `tem_email` | boolean | não | true exige e-mail cadastrado; false exige ausência. |
+| `tem_telefone` | boolean | não | true exige telefone cadastrado; false exige ausência. |
+| `simples` | string | não | Opção pelo Simples Nacional. Valores: `S`, `N`. |
+| `mei` | string | não | Opção pelo MEI. Valores: `S`, `N`. |
+| `incluir_total` | boolean | não | Calcula o total exato de resultados; sem ele, total vem null. Padrão: `false`. |
+| `incluir_contagem` | boolean | não | Conta os resultados até 1.000 e devolve contagem; acima disso, contagem.excede_limite vem true. Padrão: `false`. |
+| `confirmar_varredura` | boolean | não | Confirma uma busca ampla recusada com 409 e amplia o tempo limite de 12 para 60 segundos. Padrão: `false`. |
+| `limit` | integer | não | Padrão: `20`. |
+| `offset` | integer | não | Deslocamento da página. Padrão: `0`. |
 
-## Resposta 200
+## Notas
 
-Página de resultados.
+- Informe `q`, `cnae` ou ambos. Use os códigos de `meta.cnaes_sugeridos` para buscas rápidas por atividade.
+- `total` vem `null` por padrão; use `incluir_contagem=true` (rápido, até 1.000) ou `incluir_total=true`.
+- Buscas amplas retornam `409 busca_ampla_requer_confirmacao`: refine os filtros ou envie `confirmar_varredura=true`.
 
-- `total` (integer | null): Total exato quando incluir_total=true; caso contrário null.
-- `limit` (integer)
-- `offset` (integer)
-- `items` (array de objeto)
-  - `cnpj` (string): CNPJ completo com 14 caracteres.
-  - `razao_social` (string | null)
-  - `nome_fantasia` (string | null, opcional)
-  - `municipio` (string | null)
-  - `uf` (string | null)
-  - `cnae_principal` (string | null): Código CNAE de sete dígitos.
-  - `cnae_principal_desc` (string | null, opcional)
-  - `porte` (string | null): 00 não informado, 01 microempresa, 03 empresa de pequeno porte, 05 demais.
-  - `situacao_cadastral` (string | null): Sempre 02 (ativa) nesta rota.
-  - `opcao_simples` (string | null): S ou N.
-  - `matriz_filial` (string | null): 1 matriz, 2 filial.
-  - `telefone` (string | null): DDD e número do primeiro telefone cadastral, sem formatação; vazio quando ausente.
-  - `email` (string | null): E-mail cadastral declarado à RFB.
-  - `score` (number): Relevância relativa dentro desta busca; não compare entre buscas.
-- `has_more` (boolean): Indica que há ao menos mais um resultado após esta página.
-- `contagem` (objeto | null, opcional): Presente com incluir_contagem=true: os resultados contados até o limite. null quando nem a contagem limitada cabe no plano da busca.
-- `meta` (objeto)
-  - `fonte` (array de string)
-  - `competencia` (string | null, opcional)
-  - `snapshot_id` (string | null, opcional)
-  - `total_calculado` (boolean): Indica se total foi calculado (incluir_total=true).
-  - `modo_busca` (string): Estratégia aplicada: CNPJ exato, texto, semelhança de grafia ou somente CNAE. Valores: `cnpj`, `texto`, `fuzzy`, `cnae`.
-  - `plano` (objeto, opcional): Estimativa do PostgreSQL (EXPLAIN) para a busca, calculada em toda busca. varredura_ampla diz se a leitura mais cara de empresas_busca atinge limite_custo; nesse caso (exige_confirmacao), a busca responde 409 até receber confirmar_varredura=true. O custo considera o limit da página quando a leitura para assim que a página enche (um índice percorrido em ordem); ordenações e contagens (incluir_total) leem tudo e contam inteiras.
-    - `varredura_ampla` (boolean)
-    - `custo_estimado` (number): Custo estimado da leitura mais cara de empresas_busca, como ela vai rodar.
-    - `custo_leitura_completa` (number): Custo da mesma leitura lida até o fim, sem o limit da página; para comparação.
-    - `linhas_estimadas` (integer): Linhas estimadas nessa leitura.
-    - `limite_custo` (number)
-    - `exige_confirmacao` (boolean): Se a regra de confirmação vale para esta busca (vale para todas, com ou sem cnae).
-  - `cnaes_sugeridos` (array de objeto, opcional): Com q e sem cnae: os códigos CNAE das palavras de q, como em /v1/cnaes. Vazio para um nome de empresa.
-    - `rotulo` (string): Nome da categoria curada ou descrição oficial da subclasse.
-    - `codigos` (array de string): Subclasses CNAE 2.3; envie-as em cnae separadas por vírgula.
-    - `descricoes` (array de string): Descrição oficial de cada código, na mesma ordem.
-    - `origem` (string): categoria: grupo curado; ibge: subclasse da CNAE 2.3; rfb: código que só a tabela da Receita lista (revisões anteriores da CNAE), ainda em uso por empresas. Valores: `categoria`, `ibge`, `rfb`.
-    - `termo` (string, opcional): Sinônimo ou atividade do IBGE que correspondeu à consulta.
-    - `nota` (string, opcional)
-    - `aproximado` (boolean, opcional): Nenhuma categoria tem todas as palavras; esta tem a palavra da atividade.
+Schema completo em [openapi.yaml](https://fonteza.com.br/openapi.yaml).
 
 ## Erros
 
-| Status | Quando | Código |
+| Status | Código | Quando |
 | --- | --- | --- |
-| 409 | Busca ampla demais para executar sem confirmação, ou interrompida após 12 segundos. Refine os filtros, de preferência com um dos cnaes_sugeridos, ou repita com confirmar_varredura=true. | `busca_ampla_requer_confirmacao` `busca_demorada` |
-| 422 | Parâmetro inválido ou município incompatível com a UF. | `municipio_uf_incompativel` |
-| 504 | Busca confirmada interrompida após 60 segundos. | `busca_demorada` |
+| 409 | `busca_ampla_requer_confirmacao` `busca_demorada` | Busca ampla demais para executar sem confirmação, ou interrompida após 12 segundos. |
+| 422 | `municipio_uf_incompativel` | Parâmetro inválido ou município incompatível com a UF. |
+| 504 | `busca_demorada` | Busca confirmada interrompida após 60 segundos. |
 
-Erros comuns (401, 403, 429, 503): veja [Autenticação, cota e erros](/autenticacao#erros).
+Erros comuns e limites: [Autenticação, limites e erros](/autenticacao#erros).

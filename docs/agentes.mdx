@@ -1,23 +1,19 @@
 ---
-title: "MCP e agentes de IA"
-description: "Conecte Claude, Cursor ou Codex à Fonteza via MCP remoto ou llms.txt."
+title: "MCP"
+description: "Conecte Claude, Cursor, VS Code ou Codex ao servidor MCP da Fonteza."
 ---
 
-Conecte agentes à Fonteza via MCP remoto, ou entregue a documentação em Markdown diretamente ao modelo.
-
-## MCP remoto
+Conecte seu agente ao servidor MCP remoto da Fonteza para consultar empresas, CNPJs e números de mercado sem escrever código HTTP.
 
 - **Endpoint:** `https://fonteza.com.br/mcp` (Streamable HTTP)
 - **Autenticação:** OAuth 2.1 (conectores do Claude) ou `Authorization: Bearer fk_...`
 
-### Claude (OAuth)
+## Claude (OAuth)
 
-- **Claude Code (plugin):** rode `/plugin marketplace add fonteza/claude-plugins`, depois `/plugin install fonteza@fonteza`, e autentique com `/mcp`.
-- **claude.ai e Claude Desktop:** vá em **Configurações → Conectores → Adicionar conector personalizado**, informe `https://fonteza.com.br/mcp` e clique em **Conectar**.
+- **Claude Code (plugin):** `/plugin marketplace add fonteza/claude-plugins` → `/plugin install fonteza@fonteza` → `/mcp`
+- **claude.ai / Claude Desktop:** **Configurações → Conectores → Adicionar conector personalizado** → informe `https://fonteza.com.br/mcp` → **Conectar**.
 
-Cada autorização cria uma chave própria em **Chaves de API** no [painel](https://fonteza.com.br/app/login) (revogue lá para desconectar).
-
-### Configurar com chave de API (`FONTEZA_KEY`)
+## Com chave de API (`FONTEZA_KEY`)
 
 **Claude Code**
 
@@ -68,7 +64,7 @@ url = "https://fonteza.com.br/mcp"
 bearer_token_env_var = "FONTEZA_KEY"
 ```
 
-**Claude Desktop** (`claude_desktop_config.json`, requer Node.js; prefira o conector OAuth acima quando possível)
+**Claude Desktop** (`claude_desktop_config.json`, alternativa sem OAuth; requer Node.js)
 
 ```json
 {
@@ -84,21 +80,18 @@ bearer_token_env_var = "FONTEZA_KEY"
 }
 ```
 
-### Ferramentas disponíveis
+## Ferramentas
 
 | Ferramenta | O que faz | Equivalente REST |
 | --- | --- | --- |
-| `consultar_empresas` | Busca por nome, atividade ou até 10 CNAEs, com telefone e e-mail cadastrais (até 50 por chamada). | [`/v1/buscar`](/referencia/buscar) |
-| `consultar_mercado` | Empresas ativas por porte, aberturas e encerramentos por mês num setor e UF. | [`/v1/mercado`](/referencia/mercado) |
+| `consultar_empresas` | Busca por nome, atividade ou até 10 CNAEs (até 50/chamada, com telefone e e-mail). | [`/v1/buscar`](/referencia/buscar) |
 | `consultar_cnpj` | Cadastro, sócios e despesas federais de um CNPJ. | [`/v1/empresas/{cnpj}`](/referencia/empresas-cnpj) |
+| `consultar_mercado` | Empresas ativas por porte, aberturas e encerramentos por setor e UF. | [`/v1/mercado`](/referencia/mercado) |
 
-No MCP, apenas chamadas bem-sucedidas a ferramentas de dados consomem cota. Cota diária esgotada retorna erro JSON-RPC `-32029`; cota mensal esgotada retorna `-32005`.
+No MCP, apenas chamadas bem-sucedidas a ferramentas consomem cota (`-32029` = cota diária esgotada; `-32005` = cota mensal esgotada).
 
-## Documentação para LLMs
+## Documentação para agentes de código
 
-| Endereço | Conteúdo |
-| --- | --- |
-| [`/llms.txt`](https://fonteza.com.br/llms.txt) | Índice resumido com regras essenciais e links para cada página. |
-| [`/llms-full.txt`](https://fonteza.com.br/llms-full.txt) | Toda a documentação em um único arquivo Markdown. |
-| `/docs/<página>.md` | Qualquer página individual em Markdown (ex.: [`/docs/referencia/buscar.md`](/referencia/buscar.md)). |
-| [`/openapi.yaml`](https://fonteza.com.br/openapi.yaml) | Contrato OpenAPI 3.1 completo. |
+- [`/llms.txt`](https://fonteza.com.br/llms.txt) — índice e regras essenciais.
+- [`/llms-full.txt`](https://fonteza.com.br/llms-full.txt) — documentação completa em um único Markdown.
+- [`/openapi.yaml`](https://fonteza.com.br/openapi.yaml) — contrato OpenAPI 3.1 completo.

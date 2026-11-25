@@ -1,18 +1,18 @@
 ---
-title: "Obter o cadastro de uma empresa"
-description: "GET /v1/empresas/{cnpj}: parâmetros, resposta e erros."
+title: "Consultar CNPJ"
+description: "Cadastro completo e quadro de sócios de um CNPJ (qualquer situação cadastral)."
 ---
 
-`GET /v1/empresas/{cnpj}` · requer o header `X-Api-Key`
+`GET /v1/empresas/{cnpj}` · requer `X-Api-Key`
 
-Cadastro completo de um estabelecimento e o quadro de sócios da empresa (raiz do CNPJ), na competência RFB publicada. Inclui estabelecimentos em qualquer situação cadastral. Os campos preservam os códigos e formatos da Receita Federal: datas em AAAAMMDD e capital social com vírgula decimal.
+Cadastro completo e quadro de sócios de um CNPJ (qualquer situação cadastral).
 
 ## Exemplo
 
 ```bash
 curl \
   -H "X-Api-Key: $FONTEZA_KEY" \
-  https://api.fonteza.com.br/v1/empresas/00000000000191
+  https://api.fonteza.com.br/v1/empresas/12345678000190
 ```
 
 Resposta `200`:
@@ -61,50 +61,19 @@ Resposta `200`:
 
 ## Parâmetros
 
-| Parâmetro | Tipo | Onde | Obrigatório | Descrição |
-| --- | --- | --- | --- | --- |
-| `cnpj` | string | caminho | sim | CNPJ completo com 14 caracteres. Pontos e hífen são removidos e letras viram maiúsculas (CNPJ alfanumérico); a barra não é aceita no caminho e resulta em 404. Os dígitos verificadores não são conferidos. Ao menos 14 caracteres. |
+| Parâmetro | Tipo | Obrigatório | Descrição |
+| --- | --- | --- | --- |
+| `cnpj` | string | sim | CNPJ completo com 14 caracteres. |
 
-## Resposta 200
+## Notas
 
-Cadastro e sócios.
+- `situacao_cadastral`: `01` nula, `02` ativa, `03` suspensa, `04` inapta, `08` baixada.
+- `porte`: `00` não informado, `01` microempresa, `03` EPP, `05` demais.
+- `matriz_filial`: `1` matriz, `2` filial. Datas em `AAAAMMDD` e `capital_social` com vírgula (`150000,00`).
+- `socios[].cpf_mascarado` preserva o mascaramento oficial da Receita Federal.
 
-- `data` (objeto)
-  - `cnpj` (string): CNPJ completo com 14 caracteres.
-  - `cnpj_basico` (string): Raiz do CNPJ (8 primeiros caracteres), comum a matriz e filiais.
-  - `razao_social` (string | null)
-  - `nome_fantasia` (string | null)
-  - `matriz_filial` (string | null): 1 matriz, 2 filial.
-  - `situacao_cadastral` (string | null): Código RFB: 01 nula, 02 ativa, 03 suspensa, 04 inapta, 08 baixada.
-  - `data_inicio_atividade` (string | null): Data no formato RFB AAAAMMDD.
-  - `cnae_principal` (string | null): Código CNAE de sete dígitos.
-  - `cnae_principal_desc` (string | null)
-  - `municipio` (string | null)
-  - `uf` (string | null)
-  - `cep` (string | null): Oito dígitos, sem hífen.
-  - `telefone` (string | null): DDD e número do primeiro telefone cadastral, sem formatação; vazio quando ausente.
-  - `email` (string | null): E-mail cadastral declarado à RFB.
-  - `natureza_juridica` (string | null): Descrição da natureza jurídica.
-  - `porte` (string | null): 00 não informado, 01 microempresa, 03 empresa de pequeno porte, 05 demais.
-  - `capital_social` (string | null): Valor em reais no formato RFB, com vírgula decimal (ex. 150000,00).
-  - `opcao_simples` (string | null): S ou N.
-  - `opcao_mei` (string | null): S ou N.
-  - `qtde_socios` (integer | null)
-  - `socios` (array de objeto)
-    - `nome` (string | null)
-    - `cpf_mascarado` (string | null): Documento do sócio como publicado pela RFB: CPF mascarado para pessoa física, CNPJ para pessoa jurídica.
-    - `qualificacao` (string | null): Código RFB da qualificação do sócio (ex. 49 sócio-administrador).
-    - `desde` (string | null): Data de entrada na sociedade, formato AAAAMMDD.
-- `meta` (objeto)
-  - `fonte` (array de string)
-  - `competencia` (string | null, opcional)
-  - `snapshot_id` (string | null, opcional)
+Schema completo em [openapi.yaml](https://fonteza.com.br/openapi.yaml).
 
 ## Erros
 
-| Status | Quando | Código |
-| --- | --- | --- |
-| 404 | Registro não encontrado. |  |
-| 422 | Parâmetro inválido. |  |
-
-Erros comuns (401, 403, 429, 503): veja [Autenticação, cota e erros](/autenticacao#erros).
+Erros comuns e limites: [Autenticação, limites e erros](/autenticacao#erros).

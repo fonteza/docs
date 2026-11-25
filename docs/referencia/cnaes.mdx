@@ -1,16 +1,16 @@
 ---
-title: "Encontrar códigos CNAE por atividade"
-description: "GET /v1/cnaes: parâmetros, resposta e erros."
+title: "CNAEs"
+description: "Traduz palavras de atividade (ex.: `restaurante`, `dentista`) em códigos CNAE de 7 dígitos. Rota pública."
 ---
 
 `GET /v1/cnaes` · pública, sem chave
 
-Traduz as palavras de uma atividade ("restaurante", "dentista", "pet shop") em subclasses da CNAE 2.3, para usar no filtro cnae de /v1/buscar. Procura primeiro em categorias curadas com sinônimos do dia a dia (origem categoria, que pode reunir vários códigos) e depois no índice oficial de atividades do IBGE (origem ibge, um código). Dígitos buscam pelo código ("5611", "5611-2/01"); com todos=true, a rota devolve a lista completa de códigos aceitos. Quando nenhuma categoria tem todas as palavras, devolve as que têm a palavra da atividade e marca aproximado; um nome de empresa não devolve nada. Rota pública: não usa chave nem cota, e não consulta a base.
+Traduz palavras de atividade (ex.: `restaurante`, `dentista`) em códigos CNAE de 7 dígitos. Rota pública.
 
 ## Exemplo
 
 ```bash
-curl "https://api.fonteza.com.br/v1/cnaes?q=academia"
+curl "https://api.fonteza.com.br/v1/cnaes?q=restaurante"
 ```
 
 Resposta `200`:
@@ -54,31 +54,11 @@ Resposta `200`:
 
 ## Parâmetros
 
-| Parâmetro | Tipo | Onde | Obrigatório | Descrição |
-| --- | --- | --- | --- | --- |
-| `q` | string | query | não | Atividade, profissão ou código CNAE. Obrigatório, a menos que todos=true. De 1 a 100 caracteres. |
-| `todos` | boolean | query | não | true lista todos os códigos que o filtro cnae de /v1/buscar aceita (um item por código, em ordem), sem q, limit nem completar. Padrão: `false`. |
-| `limit` | integer | query | não | Entre 1 e 10. Padrão: `10`. |
-| `completar` | boolean | query | não | Para digitação: a última palavra pode estar incompleta (restau). Padrão: `false`. |
+| Parâmetro | Tipo | Obrigatório | Descrição |
+| --- | --- | --- | --- |
+| `q` | string | não | Atividade, profissão ou código CNAE. |
+| `todos` | boolean | não | true lista todos os códigos que o filtro cnae de /v1/buscar aceita (um item por código, em ordem), sem q, limit nem completar. Padrão: `false`. |
+| `limit` | integer | não | Padrão: `10`. |
+| `completar` | boolean | não | Para digitação: a última palavra pode estar incompleta (restau). Padrão: `false`. |
 
-## Resposta 200
-
-Sugestões, a melhor primeiro; lista vazia quando nada corresponde.
-
-- `items` (array de objeto)
-  - `rotulo` (string): Nome da categoria curada ou descrição oficial da subclasse.
-  - `codigos` (array de string): Subclasses CNAE 2.3; envie-as em cnae separadas por vírgula.
-  - `descricoes` (array de string): Descrição oficial de cada código, na mesma ordem.
-  - `origem` (string): categoria: grupo curado; ibge: subclasse da CNAE 2.3; rfb: código que só a tabela da Receita lista (revisões anteriores da CNAE), ainda em uso por empresas. Valores: `categoria`, `ibge`, `rfb`.
-  - `termo` (string, opcional): Sinônimo ou atividade do IBGE que correspondeu à consulta.
-  - `nota` (string, opcional)
-  - `aproximado` (boolean, opcional): Nenhuma categoria tem todas as palavras; esta tem a palavra da atividade.
-- `meta` (objeto)
-  - `fonte` (array de string)
-  - `classificacao` (string)
-
-## Erros
-
-| Status | Quando | Código |
-| --- | --- | --- |
-| 422 | Parâmetro inválido. |  |
+Schema completo em [openapi.yaml](https://fonteza.com.br/openapi.yaml).

@@ -1,64 +1,53 @@
 ---
 title: "API Fonteza"
-description: "Primeira chamada à API de empresas brasileiras em 30 segundos."
+description: "Conecte seu agente via MCP ou faça sua primeira chamada REST em segundos."
 ---
 
-Dados oficiais de empresas brasileiras (Receita Federal) e despesas federais em JSON, por REST ou MCP.
+Dados oficiais de empresas brasileiras (Receita Federal) e despesas federais — **prontos para agentes de IA via MCP** e disponíveis em REST/JSON.
 
-- **URL base:** `https://api.fonteza.com.br`
-- **Autenticação:** header `X-Api-Key: fk_...` ([crie uma chave, 7 dias grátis](https://fonteza.com.br/app/login))
-- **OpenAPI / LLMs:** [`/openapi.yaml`](https://fonteza.com.br/openapi.yaml) · [`/llms.txt`](https://fonteza.com.br/llms.txt) · [`/llms-full.txt`](https://fonteza.com.br/llms-full.txt)
+- **MCP remoto:** `https://fonteza.com.br/mcp` (OAuth 2.1 ou `Authorization: Bearer fk_...`)
+- **API REST:** `https://api.fonteza.com.br` (`X-Api-Key: fk_...`)
+- **Chave de API:** [crie no painel (7 dias grátis)](https://fonteza.com.br/app/login)
+- **Para agentes:** [`/llms.txt`](https://fonteza.com.br/llms.txt) · [`/llms-full.txt`](https://fonteza.com.br/llms-full.txt) · [`/openapi.yaml`](https://fonteza.com.br/openapi.yaml)
 
-## 1. Consultar um CNPJ
-
-```bash
-curl -H "X-Api-Key: $FONTEZA_KEY" \
-  https://api.fonteza.com.br/v1/empresas/00000000000191
-```
-
-```json
-{
-  "data": {
-    "cnpj": "00000000000191",
-    "razao_social": "BANCO DO BRASIL SA",
-    "situacao_cadastral": "02",
-    "uf": "DF",
-    "municipio": "BRASILIA",
-    "cnae_principal": "6422100",
-    "porte": "05",
-    "capital_social": "120000000000,00",
-    "socios": []
-  },
-  "meta": {
-    "fonte": ["RFB/DadosAbertos"],
-    "competencia": "2026-11",
-    "snapshot_id": "2026-11"
-  }
-}
-```
-
-## 2. Buscar empresas
-
-```bash
-curl -H "X-Api-Key: $FONTEZA_KEY" \
-  "https://api.fonteza.com.br/v1/buscar?q=padaria&uf=SP&limit=5"
-```
-
-`/v1/buscar` retorna apenas estabelecimentos ativos (`situacao_cadastral: "02"`). Para consultar um CNPJ em qualquer situação, use [`/v1/empresas/{cnpj}`](/referencia/empresas-cnpj).
-
-## 3. Conectar a um agente de IA (MCP)
+## 1. Conectar via MCP (recomendado)
 
 ```bash
 claude mcp add --transport http fonteza https://fonteza.com.br/mcp \
   --header "Authorization: Bearer $FONTEZA_KEY"
 ```
 
-Veja configurações prontas para Claude, Cursor, VS Code e Codex em [MCP e agentes de IA](/agentes).
+Configurações prontas para **claude.ai**, **Claude Desktop**, **Cursor**, **VS Code** e **Codex** em [MCP](/agentes).
+
+## 2. Ou chamar a API REST
+
+```bash
+curl -H "X-Api-Key: $FONTEZA_KEY" \
+  https://api.fonteza.com.br/v1/empresas/12345678000190
+```
+
+```json
+{
+  "data": {
+    "cnpj": "12345678000190",
+    "razao_social": "TRANSPORTADORA EXEMPLO LTDA",
+    "situacao_cadastral": "02",
+    "uf": "SP",
+    "municipio": "CAMPINAS",
+    "cnae_principal": "4930202",
+    "porte": "03",
+    "capital_social": "150000,00"
+  },
+  "meta": {
+    "fonte": ["RFB/DadosAbertos"],
+    "competencia": "2026-09",
+    "snapshot_id": "rfb-2026-09-3f9c2a7d41b8e605"
+  }
+}
+```
 
 ## Próximos passos
 
-- [Autenticação, cota e erros](/autenticacao) — limites diários/mensais e códigos de erro.
-- [Dados, paginação e cobertura](/cobertura) — como ler `meta`, paginação e `/v1/meta` (público e gratuito).
-- [Números de mercado](/mercado) — empresas ativas, aberturas e encerramentos por setor e estado.
-- [Dossiê verificável](/dossie) — fatos com evidência e alertas públicos sobre um CNPJ.
+- [MCP](/agentes) — conectar seu agente em 1 minuto.
+- [Autenticação e erros](/autenticacao) — `X-Api-Key`, cota, paginação, cobertura e códigos de erro.
 - [Migrar da ReceitaWS](/receitaws) — rota compatível em `/v1/cnpj/{cnpj}`.

@@ -1,18 +1,18 @@
 ---
-title: "Consultar CNPJ no formato ReceitaWS"
-description: "GET /v1/cnpj/{cnpj}: parâmetros, resposta e erros."
+title: "CNPJ (ReceitaWS)"
+description: "Consulta um CNPJ no formato compatível com a ReceitaWS (campos na raiz do JSON)."
 ---
 
-`GET /v1/cnpj/{cnpj}` · requer o header `X-Api-Key`
+`GET /v1/cnpj/{cnpj}` · requer `X-Api-Key`
 
-Cadastro na raiz do JSON, na publicação RFB vigente. Envie sua chave Fonteza em X-Api-Key.
+Consulta um CNPJ no formato compatível com a ReceitaWS (campos na raiz do JSON).
 
 ## Exemplo
 
 ```bash
 curl \
   -H "X-Api-Key: $FONTEZA_KEY" \
-  https://api.fonteza.com.br/v1/cnpj/00000000000191
+  https://api.fonteza.com.br/v1/cnpj/00123456000190
 ```
 
 Resposta `200`:
@@ -79,71 +79,16 @@ Resposta `200`:
 
 ## Parâmetros
 
-| Parâmetro | Tipo | Onde | Obrigatório | Descrição |
-| --- | --- | --- | --- | --- |
-| `cnpj` | string | caminho | sim | CNPJ completo com 14 caracteres. Pontos e hífen são removidos e letras viram maiúsculas (CNPJ alfanumérico); a barra não é aceita no caminho e resulta em 404. Os dígitos verificadores não são conferidos. Ao menos 14 caracteres. |
+| Parâmetro | Tipo | Obrigatório | Descrição |
+| --- | --- | --- | --- |
+| `cnpj` | string | sim | CNPJ completo com 14 caracteres. |
 
-## Resposta 200
+## Notas
 
-Cadastro do estabelecimento e sócios da empresa.
+- Veja detalhes da migração em [Migrar da ReceitaWS](/receitaws).
 
-- `status` ("OK")
-- `ultima_atualizacao` (string (date-time))
-- `cnpj` (string)
-- `tipo` (string)
-- `porte` (string)
-- `nome` (string)
-- `fantasia` (string)
-- `abertura` (string)
-- `atividade_principal` (array de objeto)
-  - `code` (string)
-  - `text` (string)
-- `atividades_secundarias` (array de objeto)
-  - `code` (string)
-  - `text` (string)
-- `natureza_juridica` (string)
-- `logradouro` (string)
-- `numero` (string)
-- `complemento` (string)
-- `cep` (string)
-- `bairro` (string)
-- `municipio` (string)
-- `uf` (string)
-- `email` (string)
-- `telefone` (string)
-- `efr` (string)
-- `situacao` (string)
-- `data_situacao` (string)
-- `motivo_situacao` (string)
-- `situacao_especial` (string)
-- `data_situacao_especial` (string)
-- `capital_social` (string)
-- `qsa` (array de objeto)
-  - `nome` (string)
-  - `qual` (string)
-  - `pais_origem` (string, opcional)
-  - `nome_rep_legal` (string, opcional)
-  - `qual_rep_legal` (string, opcional)
-- `simples` (objeto)
-  - `optante` (boolean)
-  - `data_opcao` (string | null)
-  - `data_exclusao` (string | null)
-  - `ultima_atualizacao` (string (date-time))
-- `simei` (objeto)
-  - `optante` (boolean)
-  - `data_opcao` (string | null)
-  - `data_exclusao` (string | null)
-  - `ultima_atualizacao` (string (date-time))
-- `extra` (objeto)
-- `billing` (objeto)
-  - `free` (false)
-  - `database` (true)
+Schema completo em [openapi.yaml](https://fonteza.com.br/openapi.yaml).
 
 ## Erros
 
-| Status | Quando | Código |
-| --- | --- | --- |
-| 404 | Registro não encontrado. |  |
-| 422 | Parâmetro inválido. |  |
-
-Erros comuns (401, 403, 429, 503): veja [Autenticação, cota e erros](/autenticacao#erros).
+Erros comuns e limites: [Autenticação, limites e erros](/autenticacao#erros).

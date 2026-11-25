@@ -18,8 +18,12 @@
           "href": "/"
         },
         {
-          "title": "MCP e agentes",
+          "title": "MCP",
           "href": "/agentes"
+        },
+        {
+          "title": "Autenticação e erros",
+          "href": "/autenticacao"
         },
         {
           "title": "Migrar da ReceitaWS",
@@ -28,76 +32,46 @@
       ]
     },
     {
-      "group": "Guias",
-      "pages": [
-        {
-          "title": "Números de mercado",
-          "href": "/mercado"
-        },
-        {
-          "title": "Dossiê verificável",
-          "href": "/dossie"
-        }
-      ]
-    },
-    {
-      "group": "Conceitos",
-      "pages": [
-        {
-          "title": "Autenticação, cota e erros",
-          "href": "/autenticacao"
-        },
-        {
-          "title": "Dados, paginação e cobertura",
-          "href": "/cobertura"
-        }
-      ]
-    },
-    {
-      "group": "Referência",
+      "group": "Endpoints",
       "pages": [
         {
           "title": "Buscar empresas",
           "href": "/referencia/buscar"
         },
         {
-          "title": "Obter o cadastro de uma empresa",
+          "title": "Consultar CNPJ",
           "href": "/referencia/empresas-cnpj"
         },
         {
-          "title": "Consultar CNPJ no formato ReceitaWS",
+          "title": "CNPJ (ReceitaWS)",
           "href": "/referencia/cnpj-cnpj"
         },
         {
-          "title": "Obter o dossiê verificável de uma empresa",
+          "title": "Dossiê",
           "href": "/referencia/empresas-cnpj-dossie"
         },
         {
-          "title": "Números de mercado por setor, lugar e porte",
+          "title": "Mercado",
           "href": "/referencia/mercado"
         },
         {
-          "title": "Listar despesas federais de uma empresa",
+          "title": "Despesas federais",
           "href": "/referencia/empresas-cnpj-despesas-federais"
         },
         {
-          "title": "Consultar publicações e cobertura",
+          "title": "Status e cobertura",
           "href": "/referencia/meta"
         },
         {
-          "title": "Verificar o processo",
-          "href": "/referencia/healthz"
-        },
-        {
-          "title": "Pedir uma análise de mercado ao agente",
+          "title": "Agente de mercado",
           "href": "/referencia/agentes-mercado-execucoes"
         },
         {
-          "title": "Consultar uma execução de agente",
+          "title": "Consultar execução",
           "href": "/referencia/agentes-execucoes-id"
         },
         {
-          "title": "Encontrar códigos CNAE por atividade",
+          "title": "CNAEs",
           "href": "/referencia/cnaes"
         }
       ]

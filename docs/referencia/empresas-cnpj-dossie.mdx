@@ -1,22 +1,18 @@
 ---
-title: "Obter o dossiê verificável de uma empresa"
-description: "GET /v1/empresas/{cnpj}/dossie: parâmetros, resposta e erros."
+title: "Dossiê"
+description: "Reúne fatos com evidência, regras de alerta e status de cada fonte sobre um CNPJ (sem nota de risco)."
 ---
 
-`GET /v1/empresas/{cnpj}/dossie` · requer o header `X-Api-Key`
+`GET /v1/empresas/{cnpj}/dossie` · requer `X-Api-Key`
 
-Reúne os fatos publicados sobre um CNPJ, cada um com a sua evidência, e aplica regras públicas e versionadas. O dossiê não calcula nota de risco.
-
-`verificacoes` lista todas as fontes do dossiê. `nada_encontrado` vale só para a referência ou janela informada. `nao_verificado` quer dizer que a fonte não foi consultada e nunca deve ser lido como ausência de registro. Contratos públicos cobrem contratos federais do CNPJ exato, sem incluir matriz ou filiais, e `parcial` indica que há mais contratos do que os lidos.
-
-Um alerta aponta um fato para revisão. Ele não é parecer jurídico, contábil ou de crédito. Uma chamada conta como uma consulta.
+Reúne fatos com evidência, regras de alerta e status de cada fonte sobre um CNPJ (sem nota de risco).
 
 ## Exemplo
 
 ```bash
 curl \
   -H "X-Api-Key: $FONTEZA_KEY" \
-  https://api.fonteza.com.br/v1/empresas/00000000000191/dossie
+  https://api.fonteza.com.br/v1/empresas/12345678000190/dossie
 ```
 
 Resposta `200`:
@@ -115,52 +111,35 @@ Resposta `200`:
 
 ## Parâmetros
 
-| Parâmetro | Tipo | Onde | Obrigatório | Descrição |
-| --- | --- | --- | --- | --- |
-| `cnpj` | string | caminho | sim | CNPJ completo com 14 caracteres. Pontos e hífen são removidos e letras viram maiúsculas (CNPJ alfanumérico); a barra não é aceita no caminho e resulta em 404. Os dígitos verificadores não são conferidos. Ao menos 14 caracteres. |
+| Parâmetro | Tipo | Obrigatório | Descrição |
+| --- | --- | --- | --- |
+| `cnpj` | string | sim | CNPJ completo com 14 caracteres. |
 
-## Resposta 200
+## Notas
 
-Dossiê com fatos, alertas, verificações e evidências.
+### Estados de `verificacoes`
 
-- `cnpj` (string)
-- `resumo` (objeto)
-  - `situacao` (string): Valores: `ativa`, `baixada`, `inapta`, `nula`, `suspensa`, `desconhecida`.
-  - `alertas` (objeto)
-    - `alta` (integer)
-    - `media` (integer)
-    - `info` (integer)
-- `fatos` (array de objeto)
-  - `id` (string)
-  - `valor` (string | boolean)
-  - `evidencia` (string): Chave em `evidencias`.
-- `alertas` (array de objeto)
-  - `codigo` (string): Valores: `SITUACAO_NAO_ATIVA`, `NATUREZA_CANDIDATO`, `MEI`, `SEM_QSA`, `EMPRESA_RECENTE`, `SOCIO_ENTROU_RECENTEMENTE`, `CONTRATO_PUBLICO_VIGENTE`, `CONTRATO_VIGENTE_EMPRESA_NAO_ATIVA`.
-  - `severidade` (string): Valores: `alta`, `media`, `info`.
-  - `regra_versao` (string)
-  - `fatos` (array de string)
-  - `explicacao` (string)
-- `verificacoes` (array de objeto)
-  - `fonte` (string): Valores: `receita_cnpj`, `despesas_federais`, `divida_ativa_pgfn`, `sancoes_cgu`, `contratos_publicos`, `processos_judiciais`.
-  - `estado` (string): Valores: `verificado`, `nada_encontrado`, `nao_verificado`.
-  - `referencia` (string, opcional)
-  - `janela` (objeto, opcional)
-    - `de` (string)
-    - `ate` (string)
-  - `motivo` (string, opcional): Valores: `fonte_nao_integrada`, `fonte_indisponivel`.
-  - `parcial` (boolean, opcional): A fonte tem mais registros do que os lidos. A ausência de um registro não prova nada.
-- `evidencias` (objeto)
-- `meta` (objeto)
-  - `fonte` (array de string)
-  - `competencia` (string, opcional)
-  - `snapshot_id` (string, opcional)
-  - `regra_versao` (string)
+| Estado | Significado |
+| --- | --- |
+| `verificado` | Fonte consultada com dados encontrados. |
+| `nada_encontrado` | Nada encontrado na janela consultada. |
+| `nao_verificado` | Fonte não consultada — **nunca leia como ausência de registro**. |
+
+### Regras de alerta (`2026-11`)
+
+| Código | Severidade | Quando aciona |
+| --- | --- | --- |
+| `SITUACAO_NAO_ATIVA` | alta | Situação cadastral diferente de ativa (`02`). |
+| `NATUREZA_CANDIDATO` | alta | CNPJ de candidatura eleitoral. |
+| `EMPRESA_RECENTE` | media | Início de atividade há menos de 12 meses. |
+| `SOCIO_ENTROU_RECENTEMENTE` | media | Entrada de sócio há menos de 90 dias. |
+| `CONTRATO_VIGENTE_EMPRESA_NAO_ATIVA` | media | Contrato federal vigente com CNPJ não ativo. |
+| `CONTRATO_PUBLICO_VIGENTE` | info | Contrato federal vigente na data da consulta. |
+| `MEI` | info | Optante pelo MEI. |
+| `SEM_QSA` | info | Sem sócios publicados (exceto MEI/EI). |
+
+Schema completo em [openapi.yaml](https://fonteza.com.br/openapi.yaml).
 
 ## Erros
 
-| Status | Quando | Código |
-| --- | --- | --- |
-| 404 | Registro não encontrado. |  |
-| 422 | Parâmetro inválido. |  |
-
-Erros comuns (401, 403, 429, 503): veja [Autenticação, cota e erros](/autenticacao#erros).
+Erros comuns e limites: [Autenticação, limites e erros](/autenticacao#erros).

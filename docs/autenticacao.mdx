@@ -1,71 +1,52 @@
 ---
-title: "Autenticação, cota e erros"
-description: "Header X-Api-Key, cota diária e mensal, status HTTP e códigos de erro."
+title: "Autenticação, limites e erros"
+description: "X-Api-Key, cota, paginação, cobertura e códigos de erro."
 ---
 
-Envie sua chave no header `X-Api-Key` em todas as rotas de dados. Crie e revogue chaves em **Chaves de API** no [painel](https://fonteza.com.br/app/login) (toda conta começa com 7 dias grátis).
+Envie sua chave no header `X-Api-Key` em todas as rotas de dados (chame sempre do servidor; crie e revogue chaves no [painel](https://fonteza.com.br/app/login)).
 
 ```bash
-curl -H "X-Api-Key: $FONTEZA_KEY" \
-  https://api.fonteza.com.br/v1/empresas/00000000000191
+curl -H "X-Api-Key: $FONTEZA_KEY" https://api.fonteza.com.br/v1/empresas/12345678000190
 ```
 
-Rotas públicas (sem chave e sem cota): [`/v1/meta`](/referencia/meta) e [`/healthz`](/referencia/healthz).
-
-- Guarde a chave em variável de ambiente (`FONTEZA_KEY`) e chame a API apenas do servidor — CORS bloqueia navegadores de outros domínios.
-- Use uma chave por integração/ambiente; a revogação vale imediatamente.
+Rotas públicas (sem chave e sem cota): [`/v1/meta`](/referencia/meta) e [`/v1/cnaes`](/referencia/cnaes).
 
 ## Cota
 
-| Chamada | Conta na cota? |
-| --- | --- |
-| Rota de dados com chave válida (`200`, `404`, `409`, `422`, `503`) | Sim |
-| Recusada com `429` por cota diária esgotada | Sim |
-| Recusada com `429` por cota mensal ou `403` (teste encerrado) | Não |
-| Rotas públicas (`/v1/meta`, `/healthz`) ou chave inválida (`401`) | Não |
-| MCP: apenas chamadas bem-sucedidas a ferramentas de dados | Sim |
+- **Diária (por chave):** renova à meia-noite de Brasília. Toda chamada autenticada a rotas de dados conta, inclusive erros e `429` — **nunca repita `429` em loop** (não há `Retry-After`).
+- **Mensal (por conta):** soma todas as chaves e renova no dia 1º (`429` mensal e `403` de teste encerrado não contam). Para planos, escreva para `contato@fonteza.com.br`.
+- **MCP:** apenas chamadas bem-sucedidas a ferramentas consomem cota.
 
-- **Cota diária:** por chave, renova à meia-noite de Brasília. Em `429`, **pare de tentar** (não há `Retry-After` e novas tentativas continuam contando).
-- **Cota mensal:** soma todas as chaves da conta e renova no dia 1º. Para alterar o plano ou ativar conta após o teste, escreva para `contato@fonteza.com.br`.
+## Dados, cobertura e paginação
+
+- **Receita Federal:** somente a publicação mais recente (sem snapshots históricos). Guarde e cite `meta.competencia` e `meta.snapshot_id`.
+- **Formatos RFB:** datas `AAAAMMDD`, capital com vírgula decimal (`150000,00`), códigos oficiais de situação e porte.
+- **Cobertura:** consulte [`GET /v1/meta`](/referencia/meta) (gratuito) para ver o estado e o período publicado de cada fonte. Resultado vazio não prova inexistência.
+- **Paginação:** `/v1/buscar` usa `limit` (1–100) + `offset` enquanto `has_more` for `true`; `/despesas-federais` usa `cursor` (`next_cursor`) preso à geração (em `409 geracao_despesas_expirada`, recomece sem cursor).
 
 ## Erros
 
-Trate erros pelo campo `codigo`, nunca pelo texto da mensagem. A API usa três formatos JSON:
-
-- Simples: `{"detail": "limit deve estar entre 1 e 100"}`
-- Com código: `{"detail": {"codigo": "municipio_uf_incompativel", "mensagem": "..."}}`
-- Operacional: `{"erro": true, "codigo": "base_indisponivel", "mensagem": "..."}`
-
-Para ler o código: verifique `detail.codigo` (se `detail` for objeto) ou `codigo` na raiz.
-
-### Status HTTP
+Trate erros pelo campo `codigo` (`detail.codigo` se `detail` for objeto, ou `codigo` na raiz), nunca pelo texto da mensagem.
 
 | Status | Quando ocorre | O que fazer |
 | --- | --- | --- |
 | `401` | Chave ausente, inválida ou revogada. | Confira `X-Api-Key`. |
-| `403` | Teste de 7 dias encerrado ou conta sem acesso ao agente. | Fale com `contato@fonteza.com.br`. |
-| `404` | CNPJ, execução ou rota não encontrados. | Confira o identificador e o caminho. |
+| `403` | Teste de 7 dias encerrado ou agente não liberado. | Fale com `contato@fonteza.com.br`. |
+| `404` | CNPJ, execução ou rota não encontrados. | Confira o identificador. |
 | `409` | Busca ampla sem confirmação, timeout ou cursor expirado. | Veja o `codigo` abaixo. |
-| `422` | Parâmetro inválido ou município incompatível com a UF. | Corrija o parâmetro informado. |
+| `422` | Parâmetro inválido ou município incompatível com a UF. | Corrija o parâmetro. |
 | `429` | Cota esgotada ou busca ampla já em andamento. | Em cota, pare; em `busca_ampla_em_andamento`, aguarde `Retry-After`. |
-| `503` | Base em carga, indisponível ou sobrecarga temporária. | Aguarde `Retry-After` ou tente novamente com backoff. |
-| `504` | Busca confirmada excedeu 60 segundos. | Refine os filtros. |
+| `503` / `504` | Carga, sobrecarga ou timeout. | Aguarde `Retry-After` ou refine os filtros. |
 
-### Códigos estáveis
+### Códigos estáveis principais
 
 | Código | Status | Ação |
 | --- | --- | --- |
 | `busca_ampla_requer_confirmacao` | `409` | Refine os filtros (use `cnaes_sugeridos`) ou repita com `confirmar_varredura=true`. |
-| `busca_demorada` | `409`, `504` | Refine os filtros (se `pode_tentar_com_aprovacao: true`, pode confirmar). |
-| `geracao_despesas_expirada` | `409` | Nova carga publicada durante a paginação: recomece sem `cursor`. |
-| `municipio_uf_incompativel` | `422` | Corrija UF ou município usando `ufs_validas` ou `sugestoes`. |
-| `parametros_invalidos` | `422` | Ajuste o parâmetro descrito em `mensagem`. |
-| `webhook_nao_configurado` | `422` | Cadastre uma URL de webhook na conta antes de enviar `webhook: true`. |
-| `agente_nao_liberado` | `403` | Peça liberação do agente em `contato@fonteza.com.br`. |
-| `execucao_nao_encontrada` | `404` | Confira o `id` da execução na conta atual. |
-| `busca_ampla_em_andamento` | `429` | Cada chave executa uma busca ampla por vez; aguarde `Retry-After`. |
-| `limite_diario_agente` | `429` | Limite diário de execuções de agente atingido. |
+| `busca_demorada` | `409`, `504` | Refine os filtros. |
+| `geracao_despesas_expirada` | `409` | Nova carga durante a paginação: recomece sem `cursor`. |
+| `municipio_uf_incompativel` | `422` | Corrija UF/município usando `ufs_validas` ou `sugestoes`. |
+| `busca_ampla_em_andamento` | `429` | Uma busca ampla por chave por vez; aguarde `Retry-After`. |
 | `api_sobrecarregada` | `503` | Aguarde `Retry-After` e reduza o paralelismo. |
-| `consulta_demorada` | `503` | Refine os filtros ou tente novamente. |
-| `base_indisponivel` / `base_carregando` | `503` | Base em atualização; tente em alguns minutos. |
-| `despesas_indisponiveis` / `mercado_indisponivel` / `agentes_indisponiveis` | `503` | Conjunto ou serviço temporariamente indisponível; confira `/v1/meta`. |
+| `base_indisponivel` / `consulta_demorada` | `503` | Tente novamente em alguns minutos ou refine os filtros. |
+| `agente_nao_liberado` / `limite_diario_agente` | `403` / `429` | Acesso ou limite diário de execuções do agente de mercado. |

@@ -3,21 +3,18 @@ title: "Migrar da ReceitaWS"
 description: "Consulte um CNPJ com sua chave Fonteza no formato ReceitaWS."
 ---
 
-Troque o host para `api.fonteza.com.br`, mantenha o caminho `/v1/cnpj/{cnpj}` e envie sua chave Fonteza no header `X-Api-Key`. Use o CNPJ sem pontuação, preservando os zeros iniciais.
+Troque o host para `api.fonteza.com.br`, mantenha `/v1/cnpj/{cnpj}` e envie `X-Api-Key`. Use o CNPJ sem pontuação (preservando zeros iniciais).
 
 ```bash
 curl --fail --silent --show-error \
   -H "X-Api-Key: $FONTEZA_KEY" \
-  https://api.fonteza.com.br/v1/cnpj/00000000000191
+  https://api.fonteza.com.br/v1/cnpj/00123456000190
 ```
 
-A resposta HTTP `200` mantém o formato da ReceitaWS na raiz do JSON (`body.nome`, `body.atividade_principal[0].code`, `body.qsa`, etc.).
+A resposta `200` mantém o formato ReceitaWS na raiz do JSON (`nome`, `atividade_principal`, `qsa`, `simples`, `simei`).
 
-## Diferenças importantes
+- **Fonte:** publicação oficial mais recente da Receita carregada pela Fonteza (`ultima_atualizacao` indica a data da publicação; competência em [`/v1/meta`](/referencia/meta)).
+- **Datas e filiais:** datas em `DD/MM/AAAA` (`null` quando ausentes em `simples`/`simei`); filiais retornam `qsa: []`.
+- **Cota:** consome 1 consulta da chave (`billing.database: true`, `billing.free: false`).
 
-- **Fonte e data:** os dados vêm da publicação oficial mais recente da Receita Federal carregada pela Fonteza (`ultima_atualizacao` indica quando a base foi publicada; consulte a competência em [`GET /v1/meta`](/referencia/meta)).
-- **Datas:** formato `DD/MM/AAAA`. Datas de opção/exclusão ausentes em `simples` e `simei` retornam `null`.
-- **Filiais e atividades:** filiais retornam `qsa: []`. Sem atividade secundária, `atividades_secundarias` traz `{"code": "00.00-0-00", "text": "Não informada"}`.
-- **Cota:** cada chamada consome 1 consulta da chave Fonteza (`billing.database: true`, `billing.free: false`).
-
-Veja todos os campos e o exemplo completo em [`GET /v1/cnpj/{cnpj}`](/referencia/cnpj-cnpj).
+Veja o exemplo completo em [`GET /v1/cnpj/{cnpj}`](/referencia/cnpj-cnpj).
