@@ -7,6 +7,17 @@ description: "POST /v1/agentes/mercado/execucoes: parâmetros, resposta e erros.
 
 Põe na fila uma execução do agente de mercado: ele lê os números de /v1/mercado para os filtros enviados e uma amostra de empresas de /v1/buscar, e escreve uma análise em português para o objetivo informado ("abrir um salão", "vender software contábil"). A resposta vem na hora, com estado na_fila; acompanhe em GET /v1/agentes/execucoes/\{id\} (o header Location traz o caminho) ou peça webhook true para receber a execução, assinada, na URL de webhook da conta quando ela terminar. Os filtros são os de /v1/mercado, com os mesmos nomes e valores (um setor e uf são obrigatórios), e são validados antes de entrar na fila. As execuções não têm custo e só contas liberadas podem pedi-las, até um limite por dia (20 por padrão, contado no dia de Brasília). Cada chamada conta na cota da chave; as consultas que o agente faz também contam na cota da chave que pediu a execução.
 
+## Exemplo
+
+```bash
+curl \
+  -X POST \
+  -H "X-Api-Key: $FONTEZA_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"categoria": "saloes-beleza", "uf": "SP", "municipio": "Campinas", "objetivo": "abrir um salão de beleza", "webhook": false}' \
+  https://api.fonteza.com.br/v1/agentes/mercado/execucoes
+```
+
 ## Corpo JSON
 
 - `cnae` (string, opcional): Como em /v1/mercado: um entre cnae, categoria e grupo é obrigatório.
@@ -43,8 +54,6 @@ Execução na fila.
 
 | Status | Quando | Código |
 | --- | --- | --- |
-| 401 | Chave ausente, inválida ou revogada. |  |
-| 403 | A conta não está liberada para o agente (agente_nao_liberado) ou o teste gratuito de 7 dias terminou e a conta não é pagante. | `agente_nao_liberado` |
 | 422 | Corpo ou filtro inválido, município desconhecido ou fora da UF (com sugestões, como em /v1/mercado), ou webhook pedido sem URL de webhook configurada na conta (webhook_nao_configurado). | `webhook_nao_configurado` |
-| 429 | Limite diário de execuções da conta (limite_diario_agente) ou cota diária da chave. | `limite_diario_agente` |
-| 503 | Execuções indisponíveis (agentes_indisponiveis), números de mercado indisponíveis para validar o município (mercado_indisponivel) ou valem os erros de AuthOrOperationalError. | `agentes_indisponiveis` |
+
+Erros comuns (401, 403, 429, 503): veja [Autenticação, cota e erros](/autenticacao#erros).

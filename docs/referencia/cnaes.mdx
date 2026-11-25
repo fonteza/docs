@@ -7,6 +7,51 @@ description: "GET /v1/cnaes: parâmetros, resposta e erros."
 
 Traduz as palavras de uma atividade ("restaurante", "dentista", "pet shop") em subclasses da CNAE 2.3, para usar no filtro cnae de /v1/buscar. Procura primeiro em categorias curadas com sinônimos do dia a dia (origem categoria, que pode reunir vários códigos) e depois no índice oficial de atividades do IBGE (origem ibge, um código). Dígitos buscam pelo código ("5611", "5611-2/01"); com todos=true, a rota devolve a lista completa de códigos aceitos. Quando nenhuma categoria tem todas as palavras, devolve as que têm a palavra da atividade e marca aproximado; um nome de empresa não devolve nada. Rota pública: não usa chave nem cota, e não consulta a base.
 
+## Exemplo
+
+```bash
+curl "https://api.fonteza.com.br/v1/cnaes?q=academia"
+```
+
+Resposta `200`:
+
+```json
+{
+  "items": [
+    {
+      "rotulo": "Restaurantes",
+      "codigos": [
+        "5611201"
+      ],
+      "descricoes": [
+        "Restaurantes e similares"
+      ],
+      "origem": "categoria",
+      "termo": "restaurante",
+      "nota": "Pizzarias, churrascarias e japoneses não têm código próprio: todos são restaurantes."
+    },
+    {
+      "rotulo": "Hotéis",
+      "codigos": [
+        "5510801"
+      ],
+      "descricoes": [
+        "Hotéis"
+      ],
+      "origem": "ibge",
+      "termo": "hotel com ou sem serviço de restaurante"
+    }
+  ],
+  "meta": {
+    "fonte": [
+      "IBGE/CNAE 2.3",
+      "Fonteza/categorias"
+    ],
+    "classificacao": "CNAE 2.3 subclasses"
+  }
+}
+```
+
 ## Parâmetros
 
 | Parâmetro | Tipo | Onde | Obrigatório | Descrição |

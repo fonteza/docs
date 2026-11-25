@@ -1,79 +1,64 @@
 ---
 title: "API Fonteza"
-description: "Empresas da Receita Federal e despesas federais em JSON, por REST ou MCP."
+description: "Primeira chamada à API de empresas brasileiras em 30 segundos."
 ---
 
-A API de empresas do Brasil para agentes de IA: cadastro da Receita Federal e despesas federais, com fonte e publicação em cada resposta.
+Dados oficiais de empresas brasileiras (Receita Federal) e despesas federais em JSON, por REST ou MCP.
 
-> Se você é uma LLM, leia [`/llms.txt`](https://fonteza.com.br/llms.txt). Todo guia e toda rota têm versão em Markdown: acrescente `.md` ao endereço.
+- **URL base:** `https://api.fonteza.com.br`
+- **Autenticação:** header `X-Api-Key: fk_...` ([crie uma chave, 7 dias grátis](https://fonteza.com.br/app/login))
+- **OpenAPI / LLMs:** [`/openapi.yaml`](https://fonteza.com.br/openapi.yaml) · [`/llms.txt`](https://fonteza.com.br/llms.txt) · [`/llms-full.txt`](https://fonteza.com.br/llms-full.txt)
 
-[Criar chave, 7 dias grátis](https://fonteza.com.br/app/login)
-
-## Conecte o seu agente
-
-Cole no Claude Code, no Cursor, no Codex ou em qualquer agente com acesso ao terminal:
-
-Prompt para o seu agente:
-
-```text
-Conecte-se à Fonteza, a API de empresas do Brasil.
-1. Leia https://fonteza.com.br/llms.txt.
-2. Peça que eu crie uma chave em https://fonteza.com.br/app/login e guarde em FONTEZA_KEY.
-3. Conecte o MCP https://fonteza.com.br/mcp com o header "Authorization: Bearer $FONTEZA_KEY".
-   No Claude Code, o plugin faz isso: /plugin marketplace add fonteza/claude-plugins
-4. Use consultar_empresas para buscar empresas, consultar_cnpj para um CNPJ e consultar_mercado para números de um setor.
-5. Cite sempre a competencia e o snapshot_id de cada resposta.
-```
-
-Para chamar a API sem agente, a primeira chamada não precisa de chave:
+## 1. Consultar um CNPJ
 
 ```bash
-curl https://api.fonteza.com.br/v1/meta
+curl -H "X-Api-Key: $FONTEZA_KEY" \
+  https://api.fonteza.com.br/v1/empresas/00000000000191
 ```
 
-| | |
-| --- | --- |
-| URL base | `https://api.fonteza.com.br` |
-| Autenticação | `X-Api-Key: fk_...`. [Crie uma chave](https://fonteza.com.br/app/login): 7 dias de teste grátis, 1.000 chamadas por dia. |
-| Formato | `GET`, e `POST` só para pedir execuções de agentes. JSON em UTF-8. Sem SDK: qualquer cliente HTTP serve. |
-| MCP | `https://fonteza.com.br/mcp` com `Authorization: Bearer fk_...`. [Instalar](/agentes). |
-| Contrato | [`/openapi.yaml`](https://fonteza.com.br/openapi.yaml), OpenAPI 3.1. Importe no Postman ou gere um cliente. |
-| Para LLMs | [`/llms.txt`](https://fonteza.com.br/llms.txt) e [`/llms-full.txt`](https://fonteza.com.br/llms-full.txt), com toda a documentação em um arquivo. |
+```json
+{
+  "data": {
+    "cnpj": "00000000000191",
+    "razao_social": "BANCO DO BRASIL SA",
+    "situacao_cadastral": "02",
+    "uf": "DF",
+    "municipio": "BRASILIA",
+    "cnae_principal": "6422100",
+    "porte": "05",
+    "capital_social": "120000000000,00",
+    "socios": []
+  },
+  "meta": {
+    "fonte": ["RFB/DadosAbertos"],
+    "competencia": "2026-11",
+    "snapshot_id": "2026-11"
+  }
+}
+```
 
-## Rotas
+## 2. Buscar empresas
 
-| Rota | O que faz |
-| --- | --- |
-| [`GET /v1/buscar`](/referencia/buscar) | Buscar empresas |
-| [`GET /v1/empresas/{cnpj}`](/referencia/empresas-cnpj) | Obter o cadastro de uma empresa |
-| [`GET /v1/cnpj/{cnpj}`](/referencia/cnpj-cnpj) | Consultar CNPJ no formato ReceitaWS |
-| [`GET /v1/mercado`](/referencia/mercado) | Números de mercado por setor, lugar e porte |
-| [`GET /v1/empresas/{cnpj}/despesas-federais`](/referencia/empresas-cnpj-despesas-federais) | Listar despesas federais de uma empresa |
-| [`GET /v1/meta`](/referencia/meta) | Consultar publicações e cobertura |
-| [`GET /healthz`](/referencia/healthz) | Verificar o processo |
-| [`POST /v1/agentes/mercado/execucoes`](/referencia/agentes-mercado-execucoes) | Pedir uma análise de mercado ao agente |
-| [`GET /v1/agentes/execucoes/{id}`](/referencia/agentes-execucoes-id) | Consultar uma execução de agente |
-| [`GET /v1/cnaes`](/referencia/cnaes) | Encontrar códigos CNAE por atividade |
+```bash
+curl -H "X-Api-Key: $FONTEZA_KEY" \
+  "https://api.fonteza.com.br/v1/buscar?q=padaria&uf=SP&limit=5"
+```
 
-## O que não é óbvio
+`/v1/buscar` retorna apenas estabelecimentos ativos (`situacao_cadastral: "02"`). Para consultar um CNPJ em qualquer situação, use [`/v1/empresas/{cnpj}`](/referencia/empresas-cnpj).
 
-- A RFB usa exclusivamente a publicação mais recente, sem consulta a versões anteriores. `competencia` e `snapshot_id` identificam a publicação corrente, não um histórico.
-- `/v1/buscar` só devolve estabelecimentos ativos (situação `02`). Para um CNPJ em qualquer situação, use [`/v1/empresas/{cnpj}`](/referencia/empresas-cnpj).
-- Nenhum resultado não quer dizer que não existe: a busca cobre só o período e o recorte publicados, informados em `meta`. Veja [Cobertura e procedência](/cobertura).
-- Buscas amplas respondem `409 busca_ampla_requer_confirmacao`. Refine os filtros ou repita com `confirmar_varredura=true`.
-- Toda requisição com chave válida a uma rota de dados conta na cota, inclusive as que terminam em erro e as recusadas com `429`. Não há `Retry-After`: a cota renova à meia-noite de Brasília. [Autenticação e cota](/autenticacao).
-- Despesas federais paginam por cursor preso à publicação. `409 geracao_despesas_expirada` significa recomeçar sem cursor. [Paginação](/paginacao).
-- Trate erros pelo `codigo`, não pela mensagem. Há três formatos de corpo. [Erros](/erros).
-- Campos da Receita mantêm o formato da fonte: datas `AAAAMMDD`, capital `150000,00`, códigos de porte e situação.
-- Chame a partir do servidor. CORS bloqueia navegadores em outros domínios, e a chave não deve ir para o front-end.
+## 3. Conectar a um agente de IA (MCP)
 
-## Termos
+```bash
+claude mcp add --transport http fonteza https://fonteza.com.br/mcp \
+  --header "Authorization: Bearer $FONTEZA_KEY"
+```
 
-- **Publicação.** Cada carga de um conjunto de dados que entra no ar. Identificada por `snapshot_id`; só a mais recente é consultada.
-- **Competência.** Mês de referência da base da Receita (`AAAA-MM`).
-- **Varredura ampla.** Busca que leria uma parte grande da base. Responde `409` até você refinar os filtros ou confirmar.
-- **Cota.** As 1.000 chamadas diárias de cada chave.
+Veja configurações prontas para Claude, Cursor, VS Code e Codex em [MCP e agentes de IA](/agentes).
 
-## Versões e mudanças
+## Próximos passos
 
-Todas as rotas ficam sob `/v1`. As mudanças são aditivas: campos, parâmetros e códigos de erro novos podem aparecer, então ignore campos que não conhece e trate erros desconhecidos pelo status. A versão do contrato está em `info.version` de [`/openapi.yaml`](https://fonteza.com.br/openapi.yaml).
+- [Autenticação, cota e erros](/autenticacao) — limites diários/mensais e códigos de erro.
+- [Dados, paginação e cobertura](/cobertura) — como ler `meta`, paginação e `/v1/meta` (público e gratuito).
+- [Números de mercado](/mercado) — empresas ativas, aberturas e encerramentos por setor e estado.
+- [Dossiê verificável](/dossie) — fatos com evidência e alertas públicos sobre um CNPJ.
+- [Migrar da ReceitaWS](/receitaws) — rota compatível em `/v1/cnpj/{cnpj}`.

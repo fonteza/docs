@@ -1,110 +1,65 @@
 ---
 title: "Números de mercado"
-description: "Empresas ativas, aberturas e encerramentos por setor, lugar e porte, com a leitura certa de cada número."
+description: "Empresas ativas, aberturas e encerramentos por setor, estado e porte."
 ---
 
-[`/v1/mercado`](/referencia/mercado) responde na hora quantas empresas existem num setor e num estado, quantas abriram e quantas encerraram a cada mês, separadas por porte. Não usa modelo de linguagem: são contagens da Receita Federal, feitas no momento da consulta sobre a base publicada.
+[`GET /v1/mercado`](/referencia/mercado) retorna contagens da Receita Federal em tempo real: empresas ativas por porte, aberturas e encerramentos nos últimos 60 meses, e ranking por município, CNAE ou faixa de capital.
 
-Toda consulta nomeia um setor (`cnae`, `categoria` ou `grupo`) e uma `uf`. Use para dimensionar um mercado ("quantos salões há em Campinas e o número cresce?"), comparar municípios ou setores dentro de um estado, ou abastecer um painel. Para comparar estados, faça uma chamada por estado. Para listar as empresas por trás dos números, use [`/v1/buscar`](/referencia/buscar): a resposta traz a consulta equivalente em `busca`.
+Toda consulta exige **um setor** (`cnae`, `categoria` ou `grupo`) e **`uf`**.
 
-## Primeira chamada
-
-Salões de beleza de Campinas, com os 100 maiores municípios do filtro:
-
-Chame `GET https://api.fonteza.com.br/v1/mercado?categoria=saloes-beleza&uf=SP&municipio=Campinas` com o header `X-Api-Key`. Leia `competencia` e `ativos.total` do corpo.
-
-### Pelo MCP
-
-A ferramenta `consultar_mercado` recebe os mesmos parâmetros e devolve o mesmo corpo em `data`. Os ids e nomes das faixas de capital vêm em `meta.faixas_capital`. Veja as ferramentas em [Agentes de IA](/agentes).
-
-Para pedir os mesmos números por MCP, chame `tools/call` com `name` `consultar_mercado` e `arguments` `{"categoria": "saloes-beleza", "uf": "SP", "municipio": "Campinas"}`.
+```bash
+curl -H "X-Api-Key: $FONTEZA_KEY" \
+  "https://api.fonteza.com.br/v1/mercado?categoria=saloes-beleza&uf=SP&municipio=Campinas&agrupar_por=cnae"
+```
 
 ## Filtros
 
 | Parâmetro | O que filtra |
 | --- | --- |
-| `cnae` | Subclasses CNAE de 7 dígitos, até 50, separadas por vírgula. |
-| `categoria` | Um slug de categoria de [`/v1/cnaes`](/referencia/cnaes), como `saloes-beleza`. Dá o mesmo resultado que listar as subclasses dela em `cnae`. |
-| `grupo` | Um grupo de categorias, como `Beleza e bem-estar`. |
-| `uf` | Sigla da UF. Obrigatória. |
-| `municipio` | Nome do município, sem diferenciar maiúsculas nem acentos. Nome desconhecido ou fora da UF dá `422` com sugestões, como em `/v1/buscar`. |
-| `perfil` | `mei`, `me`, `epp`, `demais`, `nao_informado`, separados por vírgula. |
-| `faixa_capital` | Ids de faixas de capital social, listados em [`/v1/meta`](/referencia/meta) (`data.faixas_capital`). |
-| `agrupar_por` | `municipio`, `cnae` ou `faixa_capital`: acrescenta `grupos`, os 100 maiores por total de ativos. |
-
-Informe exatamente um entre `cnae`, `categoria` e `grupo`, e sempre `uf`: sem um deles a resposta é `422`. Com `filtro` a resposta devolve o que a API entendeu: as subclasses a que uma categoria correspondeu, o nome oficial do município, os perfis e as faixas.
-
-"Onde ficam as oficinas mecânicas de SP" e "quais subsetores da beleza têm mais empresas `demais` em Campinas" são a mesma rota:
-
-- Oficinas mecânicas de SP, por município: `categoria=oficinas-mecanicas`, `uf=SP`, `agrupar_por=municipio`.
-- Subsetores da beleza em Campinas com mais empresas `demais`: `grupo=Beleza e bem-estar`, `uf=SP`, `municipio=Campinas`, `perfil=demais`, `agrupar_por=cnae`.
-
-## O que a resposta diz
-
-- `ativos`: estabelecimentos ativos agora, por perfil e em `total`.
-- `mensal`: aberturas e encerramentos por mês, nos 60 meses completos anteriores à `competencia`, calculados a partir das datas cadastrais da publicação RFB corrente. Não é uma série de snapshots anteriores nem reconstrói o mercado de cada mês. **Meses sem nenhuma abertura nem encerramento não aparecem:** preencha zeros no cliente.
-- `competencia`: a competência da base de que os números saíram.
-- `grupos`: só com `agrupar_por`, e então sempre presente: um array vazio quando nada corresponde. Do maior para o menor total. Por município traz `municipio` (código da Receita, 4 dígitos, que não é o código do IBGE), `nome` e `uf`; por CNAE, `cnae` e `descricao`; por faixa, `faixa_capital` e `nome`.
-- `busca`: a consulta de `/v1/buscar` que lista as empresas. Falta quando uma consulta não dá conta do filtro: com mais de 10 subclasses, com `mei` junto de outros perfis ou com faixas que não são vizinhas. Para quem já foi MEI e hoje não é, a lista é aproximada. `/v1/buscar` também não filtra a natureza jurídica, e os números só contam as empresariais (2xxx): a lista pode trazer CNPJs que a contagem exclui, como candidatos eleitorais (4090).
+| `cnae` | Até 50 subclasses CNAE (7 dígitos), separadas por vírgula. |
+| `categoria` | Slug de categoria de [`/v1/cnaes`](/referencia/cnaes) (ex.: `saloes-beleza`). |
+| `grupo` | Grupo de categorias (ex.: `Beleza e bem-estar`). |
+| `uf` | Sigla da UF (**obrigatória**). |
+| `municipio` | Nome do município (sem diferenciar maiúsculas ou acentos). |
+| `perfil` | `mei`, `me`, `epp`, `demais`, `nao_informado` (separados por vírgula). |
+| `faixa_capital` | IDs de faixas de capital listados em [`/v1/meta`](/referencia/meta). |
+| `agrupar_por` | `municipio`, `cnae` ou `faixa_capital` — retorna os 100 maiores em `grupos`. |
 
 ## Como ler os números
 
-- **Só empresas.** Entram as de natureza jurídica empresarial (2xxx). Candidatos eleitorais (natureza 4090) ficam de fora: somam cerca de um milhão de CNPJs a cada eleição e distorceriam qualquer tendência.
-- **Ativo** é situação cadastral `02`. **Encerramento** é situação `08` (baixada) ou `04` (inapta), no mês da situação. Inaptas contam porque milhões nunca chegam a ser baixadas.
-- **MEI à parte.** `mei` vale para quem é MEI hoje ou já foi, então um MEI baixado não vira ME. Um ex-MEI que cresceu para ME continua em `mei`. O MEI nunca é somado ao `me`: as baixas em massa de 2015 e 2018 pareceriam um colapso do mercado.
-- **Porte.** O porte da Receita é o único tamanho publicado. `demais` quer dizer acima do teto de receita das EPP: não separa média de grande empresa.
-- **Capital social.** As faixas de `faixa_capital` são a medida mais fina de tamanho, mas capital é o que a empresa declarou ao abrir ou ao alterar o contrato. Não é faturamento e não é corrigido pela inflação: uma empresa antiga pode ter capital pequeno e ser grande. Cada filial carrega o capital da empresa (`capital: "empresa"`), então uma filial não é uma empresa grande por si só. Quem não tem capital legível fica fora de toda faixa: conta nos totais sem `faixa_capital` e aparece em `agrupar_por=faixa_capital` com `faixa_capital: null`.
-- **Estabelecimentos, não empresas.** Uma filial em outro município conta lá.
-- **CNAE principal.** Só a atividade principal entra (`cnae: "principal"`).
-- **Faixas valem no deploy.** As faixas são aplicadas na consulta, então um corte novo vale assim que a API é publicada; `faixas_capital_versao` diz com que cortes a resposta foi feita.
+- **Apenas empresas (natureza `2xxx`).** Candidatos eleitorais (`4090`) ficam de fora para não distorcer tendências.
+- **Estabelecimentos e CNAE principal.** Cada filial conta no seu município, apenas pela atividade principal.
+- **Ativo vs. encerramento.** Ativo = situação `02`. Encerramento = `08` (baixada) ou `04` (inapta), no mês da situação. Meses sem movimentação são omitidos em `mensal` (preencha zeros no cliente).
+- **MEI à parte.** `mei` inclui quem é ou já foi MEI, separado de `me`.
+- **Capital social não é faturamento.** Reflete o valor declarado no contrato social, sem correção pela inflação, e repete o capital da matriz nas filiais.
 
-## Erros
+Para listar as empresas por trás dos números, use a consulta equivalente devolvida no campo `busca` em [`/v1/buscar`](/referencia/buscar).
 
-Os formatos são os de [Erros](/erros).
+## Análise escrita pelo agente (assíncrona)
 
-| Status | `codigo` | Quando |
-| --- | --- | --- |
-| `422` | (mensagem simples) | Parâmetro inválido: setor ou `uf` ausente, mais de um setor, `perfil` ou `agrupar_por` desconhecido, faixa inexistente. |
-| `422` | `municipio_uf_incompativel` | Município desconhecido ou fora da UF, com `sugestoes`. |
-| `503` | `mercado_indisponivel` | A competência publicada foi carregada antes das colunas e do índice que contam os números. Voltam com a próxima carga. |
-| `503` | `consulta_demorada`, `base_indisponivel` | Como nas demais rotas. |
+Contas liberadas podem pedir uma análise em Markdown gerada sobre os dados de `/v1/mercado` (até 20/dia):
 
-Cada chamada conta na cota como uma busca em `/v1/buscar`.
+```bash
+curl -X POST -H "X-Api-Key: $FONTEZA_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"categoria": "saloes-beleza", "uf": "SP", "municipio": "Campinas", "objetivo": "abrir um salão"}' \
+  https://api.fonteza.com.br/v1/agentes/mercado/execucoes
+```
 
-## Análise escrita pelo agente
+A rota responde `202` com o `id` da execução (header `Location`). Acompanhe em [`GET /v1/agentes/execucoes/{id}`](/referencia/agentes-execucoes-id) até `estado` ser `concluida` ou `falhou`.
 
-Os números respondem na hora. Para uma leitura deles, peça uma execução ao agente de mercado: ele consulta `/v1/mercado` com os seus filtros e uma amostra de empresas em `/v1/buscar`, e escreve uma análise em português para o objetivo que você informar. A execução é assíncrona, não tem custo e só contas liberadas podem pedi-la, até 20 por dia (no dia de Brasília). Para liberar a sua conta, fale com a Fonteza.
+### Webhook (opcional)
 
-Peça com `POST https://api.fonteza.com.br/v1/agentes/mercado/execucoes`, header `X-Api-Key` e corpo JSON como `{"categoria": "saloes-beleza", "uf": "SP", "municipio": "Campinas", "objetivo": "abrir um salão de beleza"}`.
+Envie `"webhook": true` no `POST` para receber o resultado por `POST` na URL HTTPS configurada na conta (retentativas em 1, 5 e 30 min se não responder `2xx` em 10 s). Valide a assinatura HMAC-SHA256 antes de processar:
 
-O corpo leva os filtros de `/v1/mercado`, com os mesmos nomes e valores (um setor e `uf` são obrigatórios), mais `objetivo` (de 3 a 500 caracteres). Os filtros são validados antes de a execução entrar na fila. A resposta é `202` com a execução em `na_fila`; o header `Location` traz o caminho para acompanhá-la:
+```python
+import hashlib, hmac, time
 
-Acompanhe com `GET https://api.fonteza.com.br/v1/agentes/execucoes/{id}` e o header `X-Api-Key`.
+def assinatura_valida(segredo: str, timestamp: str, corpo: bytes, assinatura: str) -> bool:
+    if abs(time.time() - int(timestamp)) > 300:
+        return False
+    esperada = hmac.new(segredo.encode(), f"{timestamp}.".encode() + corpo, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(esperada, assinatura)
+```
 
-`estado` vai de `na_fila` a `executando` e termina em `concluida` ou `falhou`. Consulte a cada poucos segundos; cada tentativa dura no máximo quatro minutos. Concluída, ela traz em `resultado`:
-
-- `analise`: o texto, em Markdown.
-- `mercado`: as respostas de `/v1/mercado` que o agente usou, a primeira com os filtros da execução.
-- `competencia`: a competência da base.
-
-Todo número da análise aparece em `mercado`. Uma análise com um número que não está lá não é entregue: a execução é tentada de novo e, se continuar assim, termina em `falhou` com `numeros_nao_conferem`. Cada execução é tentada até 3 vezes. Só a conta que pediu a execução a enxerga.
-
-| Status | `codigo` | Quando |
-| --- | --- | --- |
-| `403` | `agente_nao_liberado` | A conta não está liberada para o agente. |
-| `429` | `limite_diario_agente` | A conta já pediu todas as execuções do dia. |
-| `422` | `webhook_nao_configurado` | `webhook: true` sem URL de webhook na conta. |
-| `404` | `execucao_nao_encontrada` | Nenhuma execução com este id nesta conta. |
-| `503` | `agentes_indisponiveis` | As execuções estão fora do ar. |
-
-### Receber por webhook
-
-Com `"webhook": true`, a execução é enviada, quando termina (`concluida` ou `falhou`), por `POST` à URL de webhook da conta, com o mesmo corpo de `GET /v1/agentes/execucoes/{id}`. A URL e o segredo são da conta: a URL precisa ser `https` e apontar para um endereço público, e o segredo é mostrado uma vez, quando é gerado. Redirecionamentos não são seguidos. Responda `2xx` em até 10 segundos (o corpo da sua resposta é ignorado); sem isso, a entrega é repetida 1, 5 e 30 minutos depois, e então desiste (`webhook: "falhou"`). Cada tentativa vai para a URL que a conta tem naquele momento; se a URL for removida antes da entrega, ela para (`webhook: "falhou"`). A entrega pode chegar mais de uma vez: use o `id` da execução (também no header `X-Fonteza-Execucao`) para não processar duas vezes.
-
-Confira a assinatura antes de usar o corpo. `X-Fonteza-Assinatura` é o HMAC-SHA256, em hexadecimal, de `<X-Fonteza-Timestamp>.<corpo>` com o segredo da conta. Recuse timestamps com mais de cinco minutos de diferença, para que uma entrega capturada não possa ser repetida depois:
-
-Para validar: calcule o HMAC-SHA256 de `<X-Fonteza-Timestamp>.<corpo>` com o segredo da conta, em hexadecimal, recuse timestamps com mais de 300 segundos de diferença e compare com `X-Fonteza-Assinatura` em tempo constante.
-
-Os pedidos e as consultas de execução existem só na API.
-
-Uma execução que falhou traz o código em `erro`: `tentativas_esgotadas` (a execução caiu três vezes), `numeros_nao_conferem`, `agente_indisponivel`, `prazo_esgotado`, `consulta_indisponivel` (os números não puderam ser lidos) ou `acesso_desativado` (o acesso da conta ao agente foi desligado). Cada chamada a essas rotas conta na cota, e as consultas que o agente faz contam na cota da chave que pediu a execução.
+Os headers enviados são `X-Fonteza-Timestamp`, `X-Fonteza-Assinatura` e `X-Fonteza-Execucao` (use para idempotência).

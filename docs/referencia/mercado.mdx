@@ -9,6 +9,84 @@ Responde na hora, sem modelo: quantos estabelecimentos ativos existem, e quantos
 Como ler os números. Só entram empresas de natureza jurídica empresarial (2xxx); candidatos eleitorais ficam de fora. Ativo é situação cadastral 02. Encerramento é situação 08 (baixada) ou 04 (inapta), no mês da situação; inaptas contam porque milhões nunca chegam a ser baixadas. O perfil mei vale para quem é MEI hoje ou já foi: um MEI baixado não vira ME, e um ex-MEI que cresceu para ME continua contado como mei. O MEI nunca é somado ao ME: as baixas em massa do MEI em 2015 e 2018 pareceriam um colapso do mercado. O porte da Receita é o único tamanho publicado, e demais quer dizer acima do teto de receita das EPP: não separa média de grande empresa. As faixas de capital social são a medida mais fina, mas capital é o que a empresa declarou ao abrir ou ao alterar o contrato, não é faturamento e não é corrigido pela inflação: uma empresa antiga pode ter capital pequeno e ser grande. Cada filial carrega o capital da empresa (capital: empresa), então uma filial não é uma empresa grande por si só. Conta estabelecimentos, não empresas: uma filial em outro município conta lá. Só o CNAE principal entra (cnae: principal). Meses sem abertura nem encerramento não aparecem em mensal. Empresas sem capital legível ficam fora de toda faixa: contam nos totais sem filtro de faixa e aparecem em agrupar_por=faixa_capital com faixa_capital null.
 Os números são os da competência da base publicada (competencia). A série mensal agrupa datas cadastrais dessa publicação; não reconstrói o cadastro de cada mês nem compara snapshots históricos. busca é a consulta equivalente em /v1/buscar, para listar as empresas; vem só quando uma consulta dá conta do filtro (um setor de até 10 subclasses, e perfil e faixas que /v1/buscar expressa), e é aproximada para quem já foi MEI. /v1/buscar também não filtra a natureza jurídica, e os números só contam as de natureza empresarial (2xxx): a lista pode trazer CNPJs que a contagem exclui, como os candidatos eleitorais (4090). Cada chamada conta na cota como /v1/buscar.
 
+## Exemplo
+
+```bash
+curl \
+  -H "X-Api-Key: $FONTEZA_KEY" \
+  "https://api.fonteza.com.br/v1/mercado?categoria=saloes-beleza&uf=SP&municipio=Campinas"
+```
+
+Resposta `200`:
+
+```json
+{
+  "competencia": "2026-09",
+  "fonte": "Receita Federal, CNPJ dados abertos",
+  "cnae": "principal",
+  "capital": "empresa",
+  "faixas_capital_versao": "1",
+  "filtro": {
+    "cnaes": [
+      "9602501"
+    ],
+    "uf": "SP",
+    "municipio": "CAMPINAS",
+    "perfil": [
+      "mei",
+      "me",
+      "epp",
+      "demais",
+      "nao_informado"
+    ],
+    "faixa_capital": null
+  },
+  "ativos": {
+    "mei": 4210,
+    "me": 1830,
+    "epp": 96,
+    "demais": 12,
+    "nao_informado": 31,
+    "total": 6179
+  },
+  "grupos": [
+    {
+      "municipio": "6291",
+      "nome": "CAMPINAS",
+      "uf": "SP",
+      "ativos": {
+        "mei": 4210,
+        "me": 1830,
+        "epp": 96,
+        "demais": 12,
+        "nao_informado": 31,
+        "total": 6179
+      }
+    }
+  ],
+  "mensal": [
+    {
+      "mes": "2026-07",
+      "aberturas": {
+        "mei": 41,
+        "me": 12,
+        "epp": 0,
+        "demais": 0,
+        "nao_informado": 0
+      },
+      "encerramentos": {
+        "mei": 18,
+        "me": 9,
+        "epp": 1,
+        "demais": 0,
+        "nao_informado": 0
+      }
+    }
+  ],
+  "busca": "https://api.fonteza.com.br/v1/buscar?cnae=9602501&municipio=CAMPINAS&uf=SP"
+}
+```
+
 ## Parâmetros
 
 | Parâmetro | Tipo | Onde | Obrigatório | Descrição |
@@ -17,7 +95,7 @@ Os números são os da competência da base publicada (competencia). A série me
 | `categoria` | string | query | não | Slug de uma categoria de /v1/cnaes, como saloes-beleza. Equivale a listar as subclasses dela em cnae. |
 | `grupo` | string | query | não | Grupo de categorias, como Beleza e bem-estar. Equivale a listar as subclasses de todas as categorias do grupo em cnae. |
 | `uf` | string | query | sim | Sigla da UF. Obrigatória: cada consulta conta um estado. De 2 a 2 caracteres. |
-| `municipio` | string | query | não | Nome do município, sem diferenciar maiúsculas nem acentos. Nome desconhecido ou fora da UF devolve 422 com sugestões, como /v1/buscar. Até 100 caracteres. Até 100 caracteres. |
+| `municipio` | string | query | não | Nome do município, sem diferenciar maiúsculas nem acentos. Nome desconhecido ou fora da UF devolve 422 com sugestões, como /v1/buscar. Até 100 caracteres. |
 | `perfil` | string | query | não | Perfis separados por vírgula: mei, me, epp, demais, nao_informado. Sem o parâmetro, todos. |
 | `faixa_capital` | string | query | não | Ids de faixas de capital social separados por vírgula, de /v1/meta (data.faixas_capital). Sem o parâmetro, todas as faixas e também quem não tem capital legível. |
 | `agrupar_por` | string | query | não | Acrescenta grupos, os 100 maiores por total de ativos. Valores: `municipio`, `cnae`, `faixa_capital`. |
@@ -78,8 +156,6 @@ Números de mercado da competência publicada.
 
 | Status | Quando | Código |
 | --- | --- | --- |
-| 401 | Chave ausente, inválida ou revogada. |  |
-| 403 | O teste gratuito de 7 dias da conta terminou e a conta não é pagante. A chave volta a funcionar quando a conta passa a pagar; fale com contato@fonteza.com.br. A chamada recusada não conta na cota. |  |
 | 422 | Parâmetro inválido ou município incompatível com a UF. | `municipio_uf_incompativel` |
-| 429 | Cota diária da chave atingida (1.000 chamadas por padrão). Toda requisição autenticada conta, inclusive as que terminam em erro e as recusadas por cota. A contagem renova à meia-noite de Brasília. A resposta não traz Retry-After. |  |
-| 503 | Números de mercado indisponíveis: a competência publicada foi carregada antes das colunas e do índice que os contam (mercado_indisponivel; voltam com a próxima carga), ou valem os erros de AuthOrOperationalError. | `mercado_indisponivel` `base_indisponivel` |
+
+Erros comuns (401, 403, 429, 503): veja [Autenticação, cota e erros](/autenticacao#erros).

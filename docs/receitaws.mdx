@@ -1,20 +1,23 @@
 ---
 title: "Migrar da ReceitaWS"
-description: "Consulte um CNPJ com sua chave Fonteza e leia o cadastro no formato ReceitaWS."
+description: "Consulte um CNPJ com sua chave Fonteza no formato ReceitaWS."
 ---
 
-Troque o host para `api.fonteza.com.br`, mantenha o caminho `/v1/cnpj/{cnpj}` e envie sua chave Fonteza no cabeçalho `X-Api-Key`. Use o CNPJ sem pontuação e preserve os zeros iniciais.
+Troque o host para `api.fonteza.com.br`, mantenha o caminho `/v1/cnpj/{cnpj}` e envie sua chave Fonteza no header `X-Api-Key`. Use o CNPJ sem pontuação, preservando os zeros iniciais.
 
-```sh
+```bash
 curl --fail --silent --show-error \
-  -H "X-Api-Key: $FONTEZA_API_KEY" \
+  -H "X-Api-Key: $FONTEZA_KEY" \
   https://api.fonteza.com.br/v1/cnpj/00000000000191
 ```
 
-Após receber HTTP 200, leia os campos diretamente na raiz do JSON. Um cliente que já usa `body.nome`, `body.atividade_principal[0].code` ou `body.qsa` pode manter essas expressões.
+A resposta HTTP `200` mantém o formato da ReceitaWS na raiz do JSON (`body.nome`, `body.atividade_principal[0].code`, `body.qsa`, etc.).
 
-Cada consulta usa a publicação oficial mais recente disponibilizada pela Fonteza. O campo `ultima_atualizacao`, inclusive em `simples` e `simei`, indica quando a Fonteza publicou essa base. Consulte a competência em `GET /v1/meta`. As datas cadastrais usam `DD/MM/AAAA`. Datas de opção e exclusão ausentes recebem `null`.
+## Diferenças importantes
 
-A chamada consome a cota da chave Fonteza. Em `billing`, `database: true` indica consulta à base publicada e `free: false` identifica o canal autenticado, inclusive durante o período de teste.
+- **Fonte e data:** os dados vêm da publicação oficial mais recente da Receita Federal carregada pela Fonteza (`ultima_atualizacao` indica quando a base foi publicada; consulte a competência em [`GET /v1/meta`](/referencia/meta)).
+- **Datas:** formato `DD/MM/AAAA`. Datas de opção/exclusão ausentes em `simples` e `simei` retornam `null`.
+- **Filiais e atividades:** filiais retornam `qsa: []`. Sem atividade secundária, `atividades_secundarias` traz `{"code": "00.00-0-00", "text": "Não informada"}`.
+- **Cota:** cada chamada consome 1 consulta da chave Fonteza (`billing.database: true`, `billing.free: false`).
 
-[Campos e exemplo de resposta](/referencia/cnpj-cnpj)
+Veja todos os campos e o exemplo completo em [`GET /v1/cnpj/{cnpj}`](/referencia/cnpj-cnpj).

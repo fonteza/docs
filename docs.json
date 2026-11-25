@@ -1,21 +1,24 @@
 {
   "$schema": "https://docs.page/schema.json",
   "name": "Fonteza",
+  "favicon": "https://fonteza.com.br/favicon.svg?v=be1a50a700",
   "description": "Empresas da Receita Federal e despesas federais em JSON, por REST ou MCP.",
+  "theme": {
+    "primaryLight": "#1d3f33",
+    "backgroundLight": "#fdfbf4",
+    "primaryDark": "#8aae90",
+    "backgroundDark": "#302f2c"
+  },
   "sidebar": [
     {
       "group": "Começar",
       "pages": [
         {
-          "title": "Visão geral",
+          "title": "Início rápido",
           "href": "/"
         },
         {
-          "title": "Números de mercado",
-          "href": "/mercado"
-        },
-        {
-          "title": "Agentes de IA",
+          "title": "MCP e agentes",
           "href": "/agentes"
         },
         {
@@ -25,22 +28,27 @@
       ]
     },
     {
+      "group": "Guias",
+      "pages": [
+        {
+          "title": "Números de mercado",
+          "href": "/mercado"
+        },
+        {
+          "title": "Dossiê verificável",
+          "href": "/dossie"
+        }
+      ]
+    },
+    {
       "group": "Conceitos",
       "pages": [
         {
-          "title": "Autenticação e cota",
+          "title": "Autenticação, cota e erros",
           "href": "/autenticacao"
         },
         {
-          "title": "Paginação",
-          "href": "/paginacao"
-        },
-        {
-          "title": "Erros",
-          "href": "/erros"
-        },
-        {
-          "title": "Cobertura e procedência",
+          "title": "Dados, paginação e cobertura",
           "href": "/cobertura"
         }
       ]
@@ -59,6 +67,10 @@
         {
           "title": "Consultar CNPJ no formato ReceitaWS",
           "href": "/referencia/cnpj-cnpj"
+        },
+        {
+          "title": "Obter o dossiê verificável de uma empresa",
+          "href": "/referencia/empresas-cnpj-dossie"
         },
         {
           "title": "Números de mercado por setor, lugar e porte",
@@ -90,12 +102,5 @@
         }
       ]
     }
-  ],
-  "theme": {
-    "primaryLight": "#1d3f33",
-    "backgroundLight": "#fdfbf4",
-    "primaryDark": "#8aae90",
-    "backgroundDark": "#302f2c"
-  },
-  "favicon": "https://fonteza.com.br/favicon.svg?v=be1a50a700"
+  ]
 }

@@ -13,6 +13,88 @@ Uma lista vazia quer dizer só que nada apareceu na janela de arquivos informada
 
 Os exemplos desta página são ilustrativos e não representam conciliação oficial nem cobertura histórica completa.
 
+## Exemplo
+
+```bash
+curl \
+  -H "X-Api-Key: $FONTEZA_KEY" \
+  "https://api.fonteza.com.br/v1/empresas/00000000000191/despesas-federais?limit=5"
+```
+
+Resposta `200`:
+
+```json
+{
+  "items": [
+    {
+      "fase": "pagamento",
+      "codigo_documento": "150002000012026OB000123",
+      "id_empenho": null,
+      "exercicio": 2026,
+      "data_emissao": "2026-09-22",
+      "tipo_documento": {
+        "codigo": "OB",
+        "nome": "Ordem Bancária"
+      },
+      "favorecido": {
+        "cnpj": "11222333000181",
+        "nome": "FORNECEDOR EXEMPLO LTDA",
+        "papel": "direto"
+      },
+      "orgao": {
+        "codigo": "26000",
+        "nome": "Ministério da Educação"
+      },
+      "unidade_gestora": {
+        "codigo": "150002",
+        "nome": "UNIDADE GESTORA EXEMPLO/MEC",
+        "codigo_gestao": "00001",
+        "gestao": "TESOURO NACIONAL"
+      },
+      "processo": "23000.012345/2026-11",
+      "observacao": "Pagamento referente à nota fiscal 1234, serviços de transporte de agosto/2026",
+      "valores": {
+        "documento_brl": "120.00",
+        "empenhos_impactados_brl": "120.00",
+        "favorecido_final_brl": null
+      },
+      "url_fonte": "https://portaldatransparencia.gov.br/despesas/pagamento/150002000012026OB000123",
+      "vinculo_pncp": {
+        "situacao": "sem_chave_oficial",
+        "numero_controle_pncp": null
+      },
+      "arquivo_data": "2026-09-22"
+    }
+  ],
+  "has_more": false,
+  "next_cursor": null,
+  "meta": {
+    "fonte": "Portal da Transparência/Despesas Federais",
+    "conjunto": "transparencia-despesas",
+    "snapshot_id": "desp-20260922-20260922-8d41f07a2c96b3e5",
+    "geracao": 1,
+    "cobertura": "janela_arquivos_completa",
+    "criterio": "data_arquivo",
+    "data_inicial": "2026-09-22",
+    "data_final": "2026-09-22",
+    "datas_listadas": [
+      "2026-09-22"
+    ],
+    "datas_coletadas": [
+      "2026-09-22"
+    ],
+    "manifesto_sha256": "8d41f07a2c96b3e5d2a0c7f91e4b6a38f5c09d27b1e83a4c6f72d05e9ab14c63",
+    "coletado_em": "2026-09-23T12:00:00Z",
+    "evidencia": "arquivo_oficial_nao_conciliado",
+    "contrato_fonte": "dicionario_lote_documentado",
+    "vinculos_pncp": {
+      "com_chave_oficial": 0,
+      "sem_chave_oficial": 1
+    }
+  }
+}
+```
+
 ## Parâmetros
 
 | Parâmetro | Tipo | Onde | Obrigatório | Descrição |
@@ -86,9 +168,7 @@ Página vinculada a uma única geração publicada e aos filtros da consulta.
 
 | Status | Quando | Código |
 | --- | --- | --- |
-| 401 | Chave ausente, inválida ou revogada. |  |
-| 403 | O teste gratuito de 7 dias da conta terminou e a conta não é pagante. A chave volta a funcionar quando a conta passa a pagar; fale com contato@fonteza.com.br. A chamada recusada não conta na cota. |  |
 | 409 | A geração do cursor deixou de ser a publicação atual. | `geracao_despesas_expirada` |
 | 422 | CNPJ, filtro ou cursor inválido. |  |
-| 429 | Cota diária da chave atingida (1.000 chamadas por padrão). Toda requisição autenticada conta, inclusive as que terminam em erro e as recusadas por cota. A contagem renova à meia-noite de Brasília. A resposta não traz Retry-After. |  |
-| 503 | Despesas sem janela completa publicada, contrato inconsistente, base indisponível, consulta interrompida pelo tempo limite ou consultas demais em andamento. | `despesas_indisponiveis` `base_indisponivel` `api_sobrecarregada` `consulta_demorada` |
+
+Erros comuns (401, 403, 429, 503): veja [Autenticação, cota e erros](/autenticacao#erros).

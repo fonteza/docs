@@ -7,6 +7,58 @@ description: "GET /v1/empresas/{cnpj}: parâmetros, resposta e erros."
 
 Cadastro completo de um estabelecimento e o quadro de sócios da empresa (raiz do CNPJ), na competência RFB publicada. Inclui estabelecimentos em qualquer situação cadastral. Os campos preservam os códigos e formatos da Receita Federal: datas em AAAAMMDD e capital social com vírgula decimal.
 
+## Exemplo
+
+```bash
+curl \
+  -H "X-Api-Key: $FONTEZA_KEY" \
+  https://api.fonteza.com.br/v1/empresas/00000000000191
+```
+
+Resposta `200`:
+
+```json
+{
+  "data": {
+    "cnpj": "12345678000190",
+    "cnpj_basico": "12345678",
+    "razao_social": "TRANSPORTADORA EXEMPLO LTDA",
+    "nome_fantasia": "EXEMPLO CARGAS",
+    "matriz_filial": "1",
+    "situacao_cadastral": "02",
+    "data_inicio_atividade": "20150312",
+    "cnae_principal": "4930202",
+    "cnae_principal_desc": "Transporte rodoviário de carga, exceto produtos perigosos e mudanças, intermunicipal, interestadual e internacional",
+    "municipio": "CAMPINAS",
+    "uf": "SP",
+    "cep": "13050000",
+    "telefone": "1932345678",
+    "email": "contato@transportadoraexemplo.com.br",
+    "natureza_juridica": "Sociedade Empresária Limitada",
+    "porte": "03",
+    "capital_social": "150000,00",
+    "opcao_simples": "S",
+    "opcao_mei": "N",
+    "qtde_socios": 1,
+    "socios": [
+      {
+        "nome": "FULANA DE TAL",
+        "cpf_mascarado": "***123456**",
+        "qualificacao": "49",
+        "desde": "20150312"
+      }
+    ]
+  },
+  "meta": {
+    "fonte": [
+      "RFB/DadosAbertos"
+    ],
+    "competencia": "2026-09",
+    "snapshot_id": "rfb-2026-09-3f9c2a7d41b8e605"
+  }
+}
+```
+
 ## Parâmetros
 
 | Parâmetro | Tipo | Onde | Obrigatório | Descrição |
@@ -52,9 +104,7 @@ Cadastro e sócios.
 
 | Status | Quando | Código |
 | --- | --- | --- |
-| 401 | Chave ausente, inválida ou revogada. |  |
-| 403 | O teste gratuito de 7 dias da conta terminou e a conta não é pagante. A chave volta a funcionar quando a conta passa a pagar; fale com contato@fonteza.com.br. A chamada recusada não conta na cota. |  |
 | 404 | Registro não encontrado. |  |
 | 422 | Parâmetro inválido. |  |
-| 429 | Cota diária da chave atingida (1.000 chamadas por padrão). Toda requisição autenticada conta, inclusive as que terminam em erro e as recusadas por cota. A contagem renova à meia-noite de Brasília. A resposta não traz Retry-After. |  |
-| 503 | Autenticação indisponível, base indisponível, consulta interrompida pelo tempo limite (consulta_demorada) ou, nas buscas, consultas demais do mesmo tipo em andamento (api_sobrecarregada). | `base_indisponivel` `api_sobrecarregada` `consulta_demorada` |
+
+Erros comuns (401, 403, 429, 503): veja [Autenticação, cota e erros](/autenticacao#erros).

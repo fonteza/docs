@@ -7,6 +7,12 @@ description: "GET /healthz: parâmetros, resposta e erros."
 
 Confirma que o processo da API está de pé e que a base publicada tem os índices de que a busca depende (antes da primeira publicação, não há o que verificar). Para saber se os dados estão disponíveis, use /v1/meta.
 
+## Exemplo
+
+```bash
+curl https://api.fonteza.com.br/healthz
+```
+
 ## Parâmetros
 
 Esta rota não recebe parâmetros.
@@ -20,6 +26,4 @@ Processo disponível.
 
 ## Erros
 
-| Status | Quando | Código |
-| --- | --- | --- |
-| 503 | A base publicada perdeu um índice da busca (indices_ausentes) ou não pôde ser consultada (indices_nao_verificados). |  |
+Erros comuns (503): veja [Autenticação, cota e erros](/autenticacao#erros).

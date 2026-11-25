@@ -7,13 +7,87 @@ description: "GET /v1/buscar: parâmetros, resposta e erros."
 
 Busca estabelecimentos por nome, atividade, CNPJ ou CNAE, com filtros estruturados. Somente estabelecimentos com situação cadastral ativa (02) entram no resultado; para consultar um CNPJ em qualquer situação, use /v1/empresas/\{cnpj\}. Informe q, cnae ou os dois. Um CNPJ completo em q faz busca exata (modo cnpj); palavras usam busca textual em português sobre razão social, nome fantasia e descrição do CNAE (modo texto); quando nenhuma empresa corresponde ao texto, a busca tenta semelhança de grafia na razão social (modo fuzzy). meta.modo_busca informa o modo aplicado. O total exato é opcional (incluir_total) porque custa uma contagem completa; incluir_contagem conta até 1.000 resultados, rápido mesmo em buscas amplas. Cada item traz telefone e e-mail cadastrais; com tem_telefone e tem_email, uma página de até 100 contatos custa uma chamada. Toda busca é planejada antes de rodar, e meta.plano diz se ela é uma varredura ampla da base. Uma varredura ampla, com ou sem cnae, pede confirmação explícita (409 busca_ampla_requer_confirmacao). Com q e sem cnae, meta.cnaes_sugeridos traz os códigos CNAE das palavras de q (os mesmos de /v1/cnaes): filtrar por eles é a forma indexada, e rápida, de buscar uma atividade.
 
+## Exemplo
+
+```bash
+curl \
+  -H "X-Api-Key: $FONTEZA_KEY" \
+  "https://api.fonteza.com.br/v1/buscar?q=padaria&uf=SP&limit=5"
+```
+
+Resposta `200`:
+
+```json
+{
+  "total": null,
+  "limit": 20,
+  "offset": 0,
+  "items": [
+    {
+      "cnpj": "12345678000190",
+      "razao_social": "TRANSPORTADORA EXEMPLO LTDA",
+      "nome_fantasia": "EXEMPLO CARGAS",
+      "municipio": "CAMPINAS",
+      "uf": "SP",
+      "cnae_principal": "4930202",
+      "cnae_principal_desc": "Transporte rodoviário de carga, exceto produtos perigosos e mudanças, intermunicipal, interestadual e internacional",
+      "porte": "03",
+      "situacao_cadastral": "02",
+      "opcao_simples": "S",
+      "matriz_filial": "1",
+      "telefone": "1932345678",
+      "email": "contato@transportadoraexemplo.com.br",
+      "score": 0.83
+    }
+  ],
+  "has_more": false,
+  "meta": {
+    "fonte": [
+      "RFB/DadosAbertos"
+    ],
+    "competencia": "2026-09",
+    "snapshot_id": "rfb-2026-09-3f9c2a7d41b8e605",
+    "total_calculado": false,
+    "modo_busca": "texto",
+    "plano": {
+      "varredura_ampla": false,
+      "custo_estimado": 1834.2,
+      "custo_leitura_completa": 1834.2,
+      "linhas_estimadas": 412,
+      "limite_custo": 100000,
+      "exige_confirmacao": true
+    },
+    "cnaes_sugeridos": [
+      {
+        "rotulo": "Caminhoneiros e transportadoras",
+        "codigos": [
+          "4930201",
+          "4930202",
+          "4930203"
+        ],
+        "descricoes": [
+          "Transporte rodoviário de carga",
+          "exceto produtos perigosos e mudanças",
+          "municipal",
+          "Transporte rodoviário de carga, exceto produtos perigosos e mudanças, intermunicipal, interestadual e internacional",
+          "Transporte rodoviário de produtos perigosos"
+        ],
+        "origem": "categoria",
+        "termo": "transportadora",
+        "nota": "Maioria MEI: são sobretudo caminhoneiros autônomos."
+      }
+    ]
+  }
+}
+```
+
 ## Parâmetros
 
 | Parâmetro | Tipo | Onde | Obrigatório | Descrição |
 | --- | --- | --- | --- | --- |
-| `q` | string | query | não | Nome, razão social, atividade ou CNPJ, de 2 a 120 caracteres. Obrigatório se cnae não for informado. De 2 a 120 caracteres. |
+| `q` | string | query | não | Nome, razão social, atividade ou CNPJ, de 2 a 120 caracteres. Obrigatório se cnae não for informado. |
 | `uf` | string | query | não | Sigla da UF do estabelecimento. Até 2 caracteres. |
-| `municipio` | string | query | não | Nome do município, sem diferenciar maiúsculas nem acentos (sao paulo equivale a São Paulo); hífens e apóstrofos contam. Envie também uf: sem ela, municípios homônimos de outras UFs entram no resultado. Nome desconhecido ou fora da UF informada devolve 422 com sugestões. Até 100 caracteres. Até 100 caracteres. |
+| `municipio` | string | query | não | Nome do município, sem diferenciar maiúsculas nem acentos (sao paulo equivale a São Paulo); hífens e apóstrofos contam. Envie também uf: sem ela, municípios homônimos de outras UFs entram no resultado. Nome desconhecido ou fora da UF informada devolve 422 com sugestões. Até 100 caracteres. |
 | `cnae` | string | query | não | Código CNAE principal, ou até 10 códigos separados por vírgula (uma categoria de /v1/cnaes pode ter vários). Cada código deve ter sete dígitos e constar na lista de CNAE da base publicada; outro valor responde 422. Pontos, hífens e barras são ignorados (4721-1/02). |
 | `somente_matriz` | boolean | query | não | Exclui filiais. Padrão: `false`. |
 | `ordenar_por` | string | query | não | Valores: `relevancia`, `nome`, `municipio`, `uf`, `capital_social`, `data_inicio_atividade`, `cnae`. Padrão: `"relevancia"`. |
@@ -83,10 +157,8 @@ Página de resultados.
 
 | Status | Quando | Código |
 | --- | --- | --- |
-| 401 | Chave ausente, inválida ou revogada. |  |
-| 403 | O teste gratuito de 7 dias da conta terminou e a conta não é pagante. A chave volta a funcionar quando a conta passa a pagar; fale com contato@fonteza.com.br. A chamada recusada não conta na cota. |  |
 | 409 | Busca ampla demais para executar sem confirmação, ou interrompida após 12 segundos. Refine os filtros, de preferência com um dos cnaes_sugeridos, ou repita com confirmar_varredura=true. | `busca_ampla_requer_confirmacao` `busca_demorada` |
 | 422 | Parâmetro inválido ou município incompatível com a UF. | `municipio_uf_incompativel` |
-| 429 | Cota diária da chave atingida (detail, sem Retry-After) ou a chave já tem uma busca ampla em andamento (busca_ampla_em_andamento, com Retry-After): cada chave roda uma busca ampla por vez (texto sem UF, CNAE nem município, incluir_total, offset a partir de 1.000 ou confirmar_varredura). | `busca_ampla_em_andamento` |
-| 503 | Autenticação indisponível, base indisponível, consulta interrompida pelo tempo limite (consulta_demorada) ou, nas buscas, consultas demais do mesmo tipo em andamento (api_sobrecarregada). | `base_indisponivel` `api_sobrecarregada` `consulta_demorada` |
 | 504 | Busca confirmada interrompida após 60 segundos. | `busca_demorada` |
+
+Erros comuns (401, 403, 429, 503): veja [Autenticação, cota e erros](/autenticacao#erros).

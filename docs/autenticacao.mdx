@@ -1,39 +1,71 @@
 ---
-title: "Autenticação e cota"
-description: "Header X-Api-Key, criação de chaves e como a cota diária é contada."
+title: "Autenticação, cota e erros"
+description: "Header X-Api-Key, cota diária e mensal, status HTTP e códigos de erro."
 ---
 
-Toda rota de dados exige o header `X-Api-Key`. Cada chave tem 1.000 chamadas por dia, e toda conta começa com 7 dias de teste grátis. Depois do teste, as chaves respondem `403 {"detail": "o teste gratuito de 7 dias terminou; ..."}` até a conta passar a pagar: fale com contato@fonteza.com.br.
+Envie sua chave no header `X-Api-Key` em todas as rotas de dados. Crie e revogue chaves em **Chaves de API** no [painel](https://fonteza.com.br/app/login) (toda conta começa com 7 dias grátis).
 
-Envie a chave em todo pedido, como em `GET https://api.fonteza.com.br/v1/empresas/12345678000190` com o header `X-Api-Key: fk_...`.
+```bash
+curl -H "X-Api-Key: $FONTEZA_KEY" \
+  https://api.fonteza.com.br/v1/empresas/00000000000191
+```
 
-Sem chave, ou com chave inválida ou revogada: `401 {"detail": "API key inválida"}`. Públicas, sem chave e sem cota: [`/v1/meta`](/referencia/meta) e [`/healthz`](/referencia/healthz).
+Rotas públicas (sem chave e sem cota): [`/v1/meta`](/referencia/meta) e [`/healthz`](/referencia/healthz).
 
-## Chaves
+- Guarde a chave em variável de ambiente (`FONTEZA_KEY`) e chame a API apenas do servidor — CORS bloqueia navegadores de outros domínios.
+- Use uma chave por integração/ambiente; a revogação vale imediatamente.
 
-- Crie no [painel](https://fonteza.com.br/app/login), em **Chaves de API**. O valor começa com `fk_` e aparece uma única vez.
-- Para testar sem chave, use a **Pesquisa** do painel, na visão **Requisição da API**: ela executa buscas com a chave do painel, que tem cota diária própria.
-- Uma chave por integração ou ambiente: você revoga uma sem derrubar as outras e vê o uso de cada uma.
-- A revogação vale na requisição seguinte.
-- A mesma chave autentica o [MCP](/agentes), enviada como `Authorization: Bearer`.
+## Cota
 
-## O que conta na cota
-
-| Requisição | Conta? |
+| Chamada | Conta na cota? |
 | --- | --- |
-| Rota de dados com chave válida, resposta `200` | Sim |
-| Rota de dados com chave válida, resposta `404`, `409`, `422` ou `503` | Sim |
-| Recusada com `429` por cota esgotada | Sim |
-| Recusada com `403` (teste de 7 dias encerrado) | Não |
-| Rotas públicas `/v1/meta` e `/healthz` | Não |
-| Chave inválida (`401`) | Não |
-| MCP: só chamadas bem-sucedidas a ferramentas de dados | Sim |
+| Rota de dados com chave válida (`200`, `404`, `409`, `422`, `503`) | Sim |
+| Recusada com `429` por cota diária esgotada | Sim |
+| Recusada com `429` por cota mensal ou `403` (teste encerrado) | Não |
+| Rotas públicas (`/v1/meta`, `/healthz`) ou chave inválida (`401`) | Não |
+| MCP: apenas chamadas bem-sucedidas a ferramentas de dados | Sim |
 
-Cota esgotada: `429 {"detail": "cota diária excedida"}`, sem `Retry-After`. A contagem recomeça à meia-noite de Brasília. Não repita em laço: cada tentativa recusada também conta. O painel mostra o uso de hoje e dos últimos 14 dias por chave.
+- **Cota diária:** por chave, renova à meia-noite de Brasília. Em `429`, **pare de tentar** (não há `Retry-After` e novas tentativas continuam contando).
+- **Cota mensal:** soma todas as chaves da conta e renova no dia 1º. Para alterar o plano ou ativar conta após o teste, escreva para `contato@fonteza.com.br`.
 
-Para gastar menos: valide parâmetros antes de chamar, consulte `/v1/meta` (gratuito) antes de buscar em um conjunto indisponível e refine filtros em vez de paginar fundo.
+## Erros
 
-## Segurança
+Trate erros pelo campo `codigo`, nunca pelo texto da mensagem. A API usa três formatos JSON:
 
-- Guarde a chave em variável de ambiente ou gerenciador de segredos; nunca em código versionado, front-end, prompts ou logs.
-- Se vazar, revogue no painel e crie outra.
+- Simples: `{"detail": "limit deve estar entre 1 e 100"}`
+- Com código: `{"detail": {"codigo": "municipio_uf_incompativel", "mensagem": "..."}}`
+- Operacional: `{"erro": true, "codigo": "base_indisponivel", "mensagem": "..."}`
+
+Para ler o código: verifique `detail.codigo` (se `detail` for objeto) ou `codigo` na raiz.
+
+### Status HTTP
+
+| Status | Quando ocorre | O que fazer |
+| --- | --- | --- |
+| `401` | Chave ausente, inválida ou revogada. | Confira `X-Api-Key`. |
+| `403` | Teste de 7 dias encerrado ou conta sem acesso ao agente. | Fale com `contato@fonteza.com.br`. |
+| `404` | CNPJ, execução ou rota não encontrados. | Confira o identificador e o caminho. |
+| `409` | Busca ampla sem confirmação, timeout ou cursor expirado. | Veja o `codigo` abaixo. |
+| `422` | Parâmetro inválido ou município incompatível com a UF. | Corrija o parâmetro informado. |
+| `429` | Cota esgotada ou busca ampla já em andamento. | Em cota, pare; em `busca_ampla_em_andamento`, aguarde `Retry-After`. |
+| `503` | Base em carga, indisponível ou sobrecarga temporária. | Aguarde `Retry-After` ou tente novamente com backoff. |
+| `504` | Busca confirmada excedeu 60 segundos. | Refine os filtros. |
+
+### Códigos estáveis
+
+| Código | Status | Ação |
+| --- | --- | --- |
+| `busca_ampla_requer_confirmacao` | `409` | Refine os filtros (use `cnaes_sugeridos`) ou repita com `confirmar_varredura=true`. |
+| `busca_demorada` | `409`, `504` | Refine os filtros (se `pode_tentar_com_aprovacao: true`, pode confirmar). |
+| `geracao_despesas_expirada` | `409` | Nova carga publicada durante a paginação: recomece sem `cursor`. |
+| `municipio_uf_incompativel` | `422` | Corrija UF ou município usando `ufs_validas` ou `sugestoes`. |
+| `parametros_invalidos` | `422` | Ajuste o parâmetro descrito em `mensagem`. |
+| `webhook_nao_configurado` | `422` | Cadastre uma URL de webhook na conta antes de enviar `webhook: true`. |
+| `agente_nao_liberado` | `403` | Peça liberação do agente em `contato@fonteza.com.br`. |
+| `execucao_nao_encontrada` | `404` | Confira o `id` da execução na conta atual. |
+| `busca_ampla_em_andamento` | `429` | Cada chave executa uma busca ampla por vez; aguarde `Retry-After`. |
+| `limite_diario_agente` | `429` | Limite diário de execuções de agente atingido. |
+| `api_sobrecarregada` | `503` | Aguarde `Retry-After` e reduza o paralelismo. |
+| `consulta_demorada` | `503` | Refine os filtros ou tente novamente. |
+| `base_indisponivel` / `base_carregando` | `503` | Base em atualização; tente em alguns minutos. |
+| `despesas_indisponiveis` / `mercado_indisponivel` / `agentes_indisponiveis` | `503` | Conjunto ou serviço temporariamente indisponível; confira `/v1/meta`. |

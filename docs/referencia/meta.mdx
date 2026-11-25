@@ -7,6 +7,72 @@ description: "GET /v1/meta: parâmetros, resposta e erros."
 
 Devolve a competência da base RFB e, em data.fontes, o estado de cada conjunto (disponivel, desatualizado ou indisponivel), a cobertura, o período e as datas de coleta e promoção. Consulte antes de interpretar uma busca sem resultados: com o conjunto indisponível ou parcial, nenhum resultado não quer dizer que o fato não existe. data.aviso traz o aviso operacional vigente (manutenção, carga em andamento) ou null. Os identificadores RFB informam a publicação corrente e não selecionam versões anteriores. data.faixas_capital lista as faixas de capital social de /v1/mercado, com id, nome e o mínimo em reais; data.faixas_capital_versao a versão delas.
 
+## Exemplo
+
+```bash
+curl https://api.fonteza.com.br/v1/meta
+```
+
+Resposta `200`:
+
+```json
+{
+  "data": {
+    "competencia": "2026-09",
+    "total_linhas": 61234567,
+    "promovido_em": "2026-10-06T10:00:00Z",
+    "snapshot_id": "rfb-2026-09-3f9c2a7d41b8e605",
+    "aviso": null,
+    "fonte": [
+      "RFB/DadosAbertos"
+    ],
+    "faixas_capital_versao": "1",
+    "faixas_capital": [
+      {
+        "id": 1,
+        "nome": "Qualquer capital",
+        "desde": 0
+      }
+    ],
+    "fontes": {
+      "rfb": {
+        "estado": "disponivel",
+        "cobertura": "completa",
+        "disponivel": true,
+        "snapshot_id": "rfb-2026-09-3f9c2a7d41b8e605",
+        "periodo": "2026-09",
+        "coletado_em": "2026-10-06T09:00:00Z",
+        "promovido_em": "2026-10-06T10:00:00Z",
+        "ultima_tentativa": "2026-10-06T08:30:00Z",
+        "ultima_carga_valida": "2026-10-06T09:00:00Z",
+        "motivo_atraso": null,
+        "registros": 61234567
+      },
+      "transparencia_despesas": {
+        "estado": "indisponivel",
+        "cobertura": "desconhecida",
+        "disponivel": false,
+        "snapshot_id": null,
+        "periodo": null,
+        "coletado_em": null,
+        "promovido_em": null,
+        "ultima_tentativa": null,
+        "ultima_carga_valida": null,
+        "motivo_atraso": null,
+        "registros": 0,
+        "evidencia": null,
+        "contrato_fonte": null
+      }
+    }
+  },
+  "meta": {
+    "fonte": [
+      "RFB/DadosAbertos"
+    ]
+  }
+}
+```
+
 ## Parâmetros
 
 Esta rota não recebe parâmetros.
@@ -63,6 +129,4 @@ Competência e disponibilidade das fontes.
 
 ## Erros
 
-| Status | Quando | Código |
-| --- | --- | --- |
-| 503 | Base ainda não disponível. | `base_indisponivel` |
+Erros comuns (503): veja [Autenticação, cota e erros](/autenticacao#erros).

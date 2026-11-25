@@ -1,46 +1,48 @@
 ---
-title: "Cobertura e procedência"
-description: "Como ler fonte, publicação e cobertura antes de concluir que algo não existe."
+title: "Dados, paginação e cobertura"
+description: "Procedência, /v1/meta, paginação por offset e cursor e formatos da Receita."
 ---
 
-Cada resposta diz qual publicação foi consultada e o que ela cobre. Assim você sabe se uma busca sem resultados quer dizer que algo não existe ou só que está fora do que foi publicado. Guarde `meta` junto com o dado.
+Toda resposta inclui `meta` identificando a fonte oficial e a publicação consultada.
 
-## Campos de procedência
+- **Receita Federal (RFB):** apenas a publicação mais recente está disponível — não há consulta a snapshots históricos. Guarde e cite `competencia` (`AAAA-MM`) e `snapshot_id`.
+- **Resultado vazio não prova inexistência:** `/v1/buscar` retorna só empresas ativas (`02`); despesas federais cobrem apenas a janela publicada em `meta`.
+- **Formatos da Receita:** preservados como publicados — datas em `AAAAMMDD`, capital social com vírgula decimal (`150000,00`), porte e situação em códigos RFB (veja [`/v1/empresas/{cnpj}`](/referencia/empresas-cnpj)).
 
-Para a RFB, a Fonteza consulta somente a publicação mais recente. `competencia` e `snapshot_id` identificam essa publicação; não selecionam versões passadas, e não há comparação entre publicações. A competência vem nos metadados e não significa atualização em tempo real: se a carga atrasar, `/v1/meta` informa o atraso. Datas de abertura e encerramento dentro da publicação não formam um histórico do cadastro. Os recortes de despesas seguem outra regra, descrita abaixo.
+## Verificar disponibilidade (`/v1/meta`)
 
-| Campo | Onde | Significado |
-| --- | --- | --- |
-| `fonte` | todas | Fonte oficial: `RFB/DadosAbertos` ou `Portal da Transparência/Despesas Federais`. |
-| `competencia` | empresas | Mês de referência da base da Receita (`AAAA-MM`). |
-| `snapshot_id` | todas | Publicação consultada. Muda quando uma nova carga entra no ar. |
-| `geracao` | despesas | Número da publicação atual; os cursores ficam presos a ela. |
-| `cobertura`, `criterio`, `data_inicial`, `data_final` | despesas | A janela publicada: por qual data o recorte foi feito e quais dias inclui. |
-| `datas_listadas`, `datas_coletadas` | despesas | Arquivos diários do Portal da Transparência que existiam e que foram coletados. |
-| `evidencia`, `contrato_fonte` | despesas | Como o conjunto foi obtido e verificado. `fixture_sintetica` indica dados de teste. |
+[`GET /v1/meta`](/referencia/meta) é público e gratuito. Consulte no início da sua rotina para saber a competência atual, se há algum `aviso` operacional e se o `snapshot_id` mudou:
 
-## Disponibilidade: /v1/meta
+```bash
+curl https://api.fonteza.com.br/v1/meta
+```
 
-[`GET /v1/meta`](/referencia/meta) é público e não consome cota. `data.fontes` tem uma entrada por conjunto: `rfb` e `transparencia_despesas`.
+Cada fonte em `data.fontes` (`rfb` e `transparencia_despesas`) informa `estado` (`disponivel`, `desatualizado` ou `indisponivel`), `cobertura` (`completa`, `parcial` ou `desconhecida`), `periodo` e `registros`.
 
-| Campo | Valores |
-| --- | --- |
-| `estado` | `disponivel`; `desatualizado` (consultável, carga seguinte atrasada; motivo em `motivo_atraso`); `indisponivel`. |
-| `cobertura` | `completa`, `parcial` ou `desconhecida`. |
-| `disponivel` | `true` quando a publicação pode ser consultada. |
-| `periodo`, `coletado_em`, `promovido_em` | Período coberto, data da coleta e data em que entrou no ar. |
-| `registros` | Quantidade de registros publicados. |
+## Paginação
 
-`data.aviso` traz o aviso operacional vigente, como manutenção ou carga em andamento, e vem `null` quando não há nenhum.
+Cada página consome 1 chamada na cota.
 
-Leia `/v1/meta` no início de cada rotina e guarde o `snapshot_id` de cada conjunto. Se ele mudou, uma nova publicação entrou no ar: consulte de novo os dados de que precisa. Um resultado salvo mantém a procedência da consulta, mas não garante que o cadastro continue atual, e o `snapshot_id` não permite consultar uma versão antiga.
+### Offset — `/v1/buscar`
 
-## Quando a busca não encontra nada
+Use `limit` (1 a 100, padrão 20) e `offset` (padrão 0) enquanto `has_more` for `true`:
 
-- **Empresas.** `/v1/buscar` só devolve estabelecimentos ativos (situação `02`). Baixadas e inaptas aparecem em [`/v1/empresas/{cnpj}`](/referencia/empresas-cnpj).
-- **Despesas federais.** Só os arquivos diários coletados. Nenhum resultado não quer dizer que a empresa nunca recebeu recursos federais.
-- **Conjunto indisponível.** A rota responde `503` com código próprio, em vez de uma resposta sem resultados.
+```bash
+curl -H "X-Api-Key: $FONTEZA_KEY" \
+  "https://api.fonteza.com.br/v1/buscar?q=transportadora&uf=SP&limit=100&offset=100"
+```
 
-## Formatos da Receita Federal
+- `total` vem `null` por padrão. Use `incluir_contagem=true` para contar rapidamente até 1.000 resultados, ou `incluir_total=true` se precisar do total exato (mais lento).
+- Prefira refinar filtros (`uf`, `municipio`, `cnae`, `porte`) a paginar páginas muito profundas.
 
-Campos de empresa preservam a fonte: datas `AAAAMMDD`, capital social com vírgula decimal (`150000,00`), porte e situação cadastral em códigos da RFB. Os significados estão em [Obter o cadastro de uma empresa](/referencia/empresas-cnpj).
+### Cursor — `/v1/empresas/{cnpj}/despesas-federais`
+
+Use `limit` (1 a 100, padrão 20) e passe o `next_cursor` retornado com os **mesmos filtros** enquanto `has_more` for `true`:
+
+```bash
+curl -H "X-Api-Key: $FONTEZA_KEY" \
+  "https://api.fonteza.com.br/v1/empresas/00000000000191/despesas-federais?limit=100&cursor=SEU_NEXT_CURSOR"
+```
+
+- Trate o cursor como opaco (trocar filtros mantendo o cursor retorna `422`).
+- O cursor fica preso à publicação (`meta.geracao`). Se entrar uma nova carga durante a paginação, a rota retorna `409 geracao_despesas_expirada`: descarte a página anterior e recomece sem `cursor`.
