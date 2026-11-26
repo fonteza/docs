@@ -22,7 +22,7 @@ Rotas públicas (sem chave e sem cota): [`/v1/meta`](/referencia/meta) e [`/v1/c
 - **Receita Federal:** somente a publicação mais recente (sem snapshots históricos). Guarde e cite `meta.competencia` e `meta.snapshot_id`.
 - **Formatos RFB:** datas `AAAAMMDD`, capital com vírgula decimal (`150000,00`), códigos oficiais de situação e porte.
 - **Cobertura:** consulte [`GET /v1/meta`](/referencia/meta) (gratuito) para ver o estado e o período publicado de cada fonte. Resultado vazio não prova inexistência.
-- **Paginação:** `/v1/buscar` usa `limit` (1–100) + `offset` enquanto `has_more` for `true`; `/despesas-federais` usa `cursor` (`next_cursor`) preso à geração (em `409 geracao_despesas_expirada`, recomece sem cursor).
+- **Paginação:** `/v1/buscar` usa `limit` (1–100) + `offset` enquanto `has_more` for `true`.
 
 ## Erros
 
@@ -44,7 +44,6 @@ Trate erros pelo campo `codigo` (`detail.codigo` se `detail` for objeto, ou `cod
 | --- | --- | --- |
 | `busca_ampla_requer_confirmacao` | `409` | Refine os filtros (use `cnaes_sugeridos`) ou repita com `confirmar_varredura=true`. |
 | `busca_demorada` | `409`, `504` | Refine os filtros. |
-| `geracao_despesas_expirada` | `409` | Nova carga durante a paginação: recomece sem `cursor`. |
 | `municipio_uf_incompativel` | `422` | Corrija UF/município usando `ufs_validas` ou `sugestoes`. |
 | `busca_ampla_em_andamento` | `429` | Uma busca ampla por chave por vez; aguarde `Retry-After`. |
 | `api_sobrecarregada` | `503` | Aguarde `Retry-After` e reduza o paralelismo. |

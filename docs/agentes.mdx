@@ -6,7 +6,7 @@ description: "Conecte Claude, Cursor, VS Code ou Codex ao servidor MCP da Fontez
 Conecte seu agente ao servidor MCP remoto da Fonteza para consultar empresas, CNPJs e números de mercado sem escrever código HTTP.
 
 - **Endpoint:** `https://fonteza.com.br/mcp` (Streamable HTTP)
-- **Autenticação:** OAuth 2.1 (conectores do Claude) ou `Authorization: Bearer fk_...`
+- **Autenticação:** OAuth 2.1 em conectores compatíveis ou `Authorization: Bearer fk_...`
 
 ## Claude (OAuth)
 
@@ -84,8 +84,8 @@ bearer_token_env_var = "FONTEZA_KEY"
 
 | Ferramenta | O que faz | Equivalente REST |
 | --- | --- | --- |
-| `consultar_empresas` | Busca por nome, atividade ou até 10 CNAEs (até 50/chamada, com telefone e e-mail). | [`/v1/buscar`](/referencia/buscar) |
-| `consultar_cnpj` | Cadastro, sócios e despesas federais de um CNPJ. | [`/v1/empresas/{cnpj}`](/referencia/empresas-cnpj) |
+| `consultar_empresas` | Busca por nome, atividade ou até 10 CNAEs (até 50 resultados por chamada). | [`/v1/buscar`](/referencia/buscar) |
+| `consultar_cnpj` | Situação cadastral e dados da empresa. | [`/v1/empresas/{cnpj}`](/referencia/empresas-cnpj) |
 | `consultar_mercado` | Empresas ativas por porte, aberturas e encerramentos por setor e UF. | [`/v1/mercado`](/referencia/mercado) |
 
 No MCP, apenas chamadas bem-sucedidas a ferramentas consomem cota (`-32029` = cota diária esgotada; `-32005` = cota mensal esgotada).

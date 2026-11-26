@@ -2,7 +2,7 @@
   "$schema": "https://docs.page/schema.json",
   "name": "Fonteza",
   "favicon": "https://fonteza.com.br/favicon.svg?v=be1a50a700",
-  "description": "Empresas da Receita Federal e despesas federais em JSON, por REST ou MCP.",
+  "description": "Cadastro de empresas da Receita Federal e números de mercado via REST ou MCP.",
   "theme": {
     "primaryLight": "#1d3f33",
     "backgroundLight": "#fdfbf4",
@@ -49,10 +49,6 @@
         {
           "title": "Mercado",
           "href": "/referencia/mercado"
-        },
-        {
-          "title": "Despesas federais",
-          "href": "/referencia/empresas-cnpj-despesas-federais"
         },
         {
           "title": "Status e cobertura",
