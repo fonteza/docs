@@ -22,6 +22,10 @@
           "href": "/agentes"
         },
         {
+          "title": "Configurar com agente",
+          "href": "/configurar-com-agente"
+        },
+        {
           "title": "Autenticação e erros",
           "href": "/autenticacao"
         },

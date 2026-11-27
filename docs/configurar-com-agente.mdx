@@ -1,0 +1,39 @@
+---
+title: "Configurar a API com seu agente"
+description: "Um prompt: você autoriza no navegador e o agente cria a chave, escreve o cliente e testa."
+---
+
+Cole o prompt abaixo no seu agente de código (Claude Code, Codex, Cursor ou outro com terminal). Você só autoriza no navegador. O agente cria uma chave para o projeto, grava `FONTEZA_KEY` no `.env`, escreve um cliente pequeno na linguagem do projeto e testa a primeira consulta.
+
+Se você ainda não tem conta, o link de autorização leva ao cadastro e o teste grátis de 7 dias começa ali.
+
+```text
+Configure a API da Fonteza neste projeto. A Fonteza serve dados oficiais de empresas brasileiras (Receita Federal) por REST.
+
+1. Confirme que o terminal roda no meu computador, na raiz deste projeto. Se não tiver terminal local, pare e me mande abrir https://fonteza.com.br/app para criar a chave manualmente.
+2. Peça um código de autorização, usando o nome da pasta do projeto:
+   curl -s -X POST https://fonteza.com.br/app/dispositivo/codigo -H 'Content-Type: application/json' -d '{"projeto":"NOME_DA_PASTA"}'
+   Mostre-me o link de "url_completa" e o "codigo_usuario". Peça que eu abra o link, entre na minha conta (ou crie uma) e confirme que o código é o mesmo do terminal.
+3. A cada "intervalo" segundos (5), por até 10 minutos, consulte:
+   curl -s -X POST https://fonteza.com.br/app/dispositivo/token -H 'Content-Type: application/json' -d '{"codigo_dispositivo":"VALOR_RECEBIDO"}'
+   Enquanto vier "authorization_pending", continue. Em "slow_down", aumente o intervalo. Em "access_denied" ou "expired_token", pare e me avise.
+4. Quando vier "chave", grave FONTEZA_KEY=<valor> no arquivo .env do projeto (crie se não existir) e garanta que .env está no .gitignore. Se FONTEZA_KEY já existir, pergunte antes de substituir. Nunca mostre a chave no chat, em logs ou em commits.
+5. Leia https://fonteza.com.br/llms.txt e crie um cliente pequeno na linguagem e no estilo deste projeto. Ele lê FONTEZA_KEY do ambiente e envia o header X-Api-Key para https://api.fonteza.com.br. Não envie a chave para nenhum outro endereço.
+6. Teste com o cliente: GET /v1/empresas/00000000000191. Mostre-me a razão social e a competência (meta.competencia). Se vier 403 de teste encerrado, diga que a configuração terminou, mas a conta precisa de um plano: https://fonteza.com.br/precos.
+```
+
+## Como funciona
+
+1. `POST https://fonteza.com.br/app/dispositivo/codigo` devolve `codigo_dispositivo` (secreto, fica no terminal), `codigo_usuario` (como `BCDF-GHJK`) e o link `url_completa`.
+2. Você abre o link, entra na conta, confere se o código é o mesmo do terminal e clica em **Autorizar**.
+3. O agente consulta `POST https://fonteza.com.br/app/dispositivo/token` a cada `intervalo` segundos. Depois da autorização, a primeira consulta cria a chave e a devolve uma única vez.
+
+| Resposta | O que significa |
+| --- | --- |
+| `200` com `chave` | Chave criada, com o nome `Agente · <projeto>`. Se `teste_encerrado` for `true`, a chave só responde depois que a conta assinar um plano. |
+| `authorization_pending` | Ainda não autorizado. Continue consultando. |
+| `slow_down` | Consultas rápidas demais. Aumente o intervalo. |
+| `access_denied` | Você clicou em **Cancelar**. Nenhuma chave foi criada. |
+| `expired_token` | O código passou de 10 minutos ou já entregou uma chave. Peça outro. |
+
+A chave aparece em **Chaves de API** no [painel](https://fonteza.com.br/app) e pode ser revogada como qualquer outra. Prefere fazer à mão? Crie a chave no painel e veja [Autenticação e erros](autenticacao).
